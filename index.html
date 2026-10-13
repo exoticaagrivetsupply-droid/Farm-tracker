@@ -3,8 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Uma Tracker</title>
+<title>Farm Tracker</title>
 <meta name="theme-color" content="#2f6b3a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Farm Tracker">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
 :root{
   --bg:#f4f2ea;--card:#ffffff;--ink:#1e281e;--muted:#6b7266;--line:#e2ded2;
@@ -86,7 +93,8 @@ details ul{padding-left:20px;margin:4px 0}
 </head>
 <body>
 <header>
-  <h1>🌾 Uma Tracker</h1>
+  <h1>🌱 Farm Tracker</h1>
+  <button class="sync" id="installBtn" style="display:none" onclick="installApp()">📲 Install</button>
   <button class="sync" id="syncBtn" onclick="syncNow()">☁ Sync</button>
 </header>
 <main id="main"></main>
@@ -104,7 +112,7 @@ details ul{padding-left:20px;margin:4px 0}
 
 <script>
 /* =========================================================
-   UMA TRACKER — farm records, planting to harvest
+   FARM TRACKER — farm records, planting to harvest
    Data: saved on this device (localStorage) + optional
    sync to a JSON file in your own GitHub repository.
    ========================================================= */
@@ -716,11 +724,14 @@ function viewGuide(){
 
 function viewSettings(){
   const c = cfg();
-  return `<h2>☁ GitHub Sync</h2>
+  const inst = isStandalone() ? '<p class="small pos" style="margin:0">✅ Naka-install na ini nga app.</p>'
+    : `<button class="btn" onclick="installApp()">📲 I-install sa cellphone</button><p class="hint">Para may icon sa home screen kag mag-abri bisan wala internet.</p>`;
+  return `<h2>📲 App</h2><div class="card">${inst}</div>
+  <h2>☁ GitHub Sync</h2>
   <div class="card">
     <p class="small muted" style="margin-top:0">Ang data ma-save sa isa ka file sa inyo GitHub repository. Puwede ninyo gamiton ang app sa lain-lain nga cellphone kag pareho ang data.</p>
     <div class="row2"><label>GitHub username<input id="g_owner" value="${esc(c.owner||'')}" placeholder="juandelacruz" autocapitalize="off"></label>
-    <label>Data repo name<input id="g_repo" value="${esc(c.repo||'')}" placeholder="uma-data" autocapitalize="off"></label></div>
+    <label>Data repo name<input id="g_repo" value="${esc(c.repo||'')}" placeholder="farm-data" autocapitalize="off"></label></div>
     <div class="row2"><label>Branch<input id="g_branch" value="${esc(c.branch||'main')}" autocapitalize="off"></label>
     <label>File path<input id="g_path" value="${esc(c.path||'farm-data.json')}" autocapitalize="off"></label></div>
     <label>Token (fine-grained, Contents: Read & write)<input id="g_token" type="password" value="${esc(c.token||'')}" placeholder="github_pat_..." autocomplete="off"></label>
@@ -946,7 +957,7 @@ async function ghGet(c){
   return {data: text ? JSON.parse(text) : null, sha:j.sha};
 }
 async function ghPut(c, data, sha){
-  const body = {message:'Uma Tracker sync ' + new Date().toLocaleString('en-PH'), content:b64enc(JSON.stringify(data, null, 1)), branch:c.branch || 'main'};
+  const body = {message:'Farm Tracker sync ' + new Date().toLocaleString('en-PH'), content:b64enc(JSON.stringify(data, null, 1)), branch:c.branch || 'main'};
   if (sha) body.sha = sha;
   const r = await fetch(ghUrl(c), {method:'PUT', headers:{Authorization:'Bearer ' + c.token, Accept:'application/vnd.github+json', 'Content-Type':'application/json'}, body:JSON.stringify(body)});
   if (r.status === 409 || r.status === 422) { const e = new Error('conflict'); e.conflict = true; throw e; }
@@ -994,14 +1005,14 @@ function download(name, text, type){
   a.download = name; document.body.appendChild(a); a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
 }
-function exportJSON(){ download(`uma-backup-${today()}.json`, JSON.stringify(db, null, 1), 'application/json'); }
+function exportJSON(){ download(`farm-backup-${today()}.json`, JSON.stringify(db, null, 1), 'application/json'); }
 function importJSON(input){
   const f = input.files[0]; if (!f) return;
   const rd = new FileReader();
   rd.onload = () => {
     try {
       const d = JSON.parse(rd.result);
-      if (!Array.isArray(d.plantings)) throw new Error('Indi ini Uma Tracker backup');
+      if (!Array.isArray(d.plantings)) throw new Error('Indi ini Farm Tracker backup');
       db = mergeDb(db, Object.assign(emptyDb(), d)); save(); render(); toast('Na-restore ang backup');
     } catch(e){ toast('Error: ' + e.message); }
     input.value = '';
@@ -1018,12 +1029,28 @@ function exportCSV(){
   rows.push(['SUMMARY PER CROP','','','','','','','','','','','','','','']);
   rows.push(['Crop','Date planted','Status','Area','Capital (PHP)','Income (PHP)','Net (PHP)','ROI %','Harvest qty','Unit','Cost per unit']);
   db.plantings.forEach(p => { const s = stats(p.id); rows.push([pName(p), p.datePlanted, STATUS[p.status], areaLbl(p), round2(s.cost), round2(s.income), round2(s.net), s.roi == null ? '' : round2(s.roi), round2(s.qty), s.unit, s.qty ? round2(s.cost/s.qty) : '']); });
-  download(`uma-records-${today()}.csv`, '\ufeff' + rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
+  download(`farm-records-${today()}.csv`, '\ufeff' + rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
 }
 function clearAll(){
   if (!confirm('Panason ang TANAN nga data sa sini nga cellphone? (Ang naka-sync sa GitHub indi madula.)')) return;
   if (prompt('I-type ang PANAS para magpadayon') !== 'PANAS') return;
   db = emptyDb(); persist(); const c = cfg(); delete c.lastSync; c.dirty = false; setCfg(c); render(); toast('Napanas na');
+}
+
+
+/* ---------- Install as app (PWA) ---------- */
+let installEvt = null;
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+if ('serviceWorker' in navigator && window.isSecureContext) navigator.serviceWorker.register('sw.js').catch(() => {});
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; $('#installBtn').style.display = ''; if (state.view === 'settings') render(); });
+window.addEventListener('appinstalled', () => { installEvt = null; $('#installBtn').style.display = 'none'; toast('✅ Na-install na ang Farm Tracker'); });
+async function installApp(){
+  if (installEvt) { installEvt.prompt(); const r = await installEvt.userChoice; if (r.outcome === 'accepted') { installEvt = null; $('#installBtn').style.display = 'none'; } return; }
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  modal('Paano i-install', ios
+    ? `<ol><li>Buksi ini nga app sa <b>Safari</b>.</li><li>Pindota ang <b>Share</b> (kahon nga may pana pataas) sa idalom.</li><li>Pilia ang <b>Add to Home Screen</b> → <b>Add</b>.</li></ol>`
+    : `<ol><li>Buksi ini nga app sa <b>Google Chrome</b> (indi sa Messenger/Facebook browser).</li><li>Pindota ang <b>⋮</b> sa ibabaw sa tuo.</li><li>Pilia ang <b>Install app</b> (ukon <b>Add to Home screen → Install</b>).</li></ol>
+       <p class="small muted">Kon wala ang "Install app": siguroha nga ang link nagasugod sa <b>https://</b> kag halin sa GitHub Pages, indi file nga gin-download sa cellphone.</p>`);
 }
 
 /* ---------- Start ---------- */
