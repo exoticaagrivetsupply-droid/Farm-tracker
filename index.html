@@ -730,8 +730,8 @@ function viewSettings(){
   <h2>☁ GitHub Sync</h2>
   <div class="card">
     <p class="small muted" style="margin-top:0">Ang data ma-save sa isa ka file sa inyo GitHub repository. Puwede ninyo gamiton ang app sa lain-lain nga cellphone kag pareho ang data.</p>
-    <div class="row2"><label>GitHub username<input id="g_owner" value="${esc(c.owner||'')}" placeholder="juandelacruz" autocapitalize="off"></label>
-    <label>Data repo name<input id="g_repo" value="${esc(c.repo||'')}" placeholder="farm-data" autocapitalize="off"></label></div>
+    <div class="row2"><label>GitHub username<input id="g_owner" value="${esc(c.owner || ghOwnerFromUrl())}" placeholder="juandelacruz" autocapitalize="off"></label>
+    <label>Data repo name<input id="g_repo" value="${esc(c.repo||'farm-data')}" placeholder="farm-data" autocapitalize="off"></label></div>
     <div class="row2"><label>Branch<input id="g_branch" value="${esc(c.branch||'main')}" autocapitalize="off"></label>
     <label>File path<input id="g_path" value="${esc(c.path||'farm-data.json')}" autocapitalize="off"></label></div>
     <label>Token (fine-grained, Contents: Read & write)<input id="g_token" type="password" value="${esc(c.token||'')}" placeholder="github_pat_..." autocomplete="off"></label>
@@ -928,6 +928,7 @@ function logTask(pid, i){
 /* ---------- GitHub sync ---------- */
 const b64enc = s => { const b = new TextEncoder().encode(s); let bin = ''; for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(bin); };
 const b64dec = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g,'')), c => c.charCodeAt(0)));
+function ghOwnerFromUrl(){ const h = location.hostname; return h.endsWith('.github.io') ? h.slice(0, -'.github.io'.length) : ''; }
 function ghUrl(c){ return `https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}/contents/${c.path.split('/').map(encodeURIComponent).join('/')}`; }
 async function ghErr(r){
   let m = ''; try { m = (await r.json()).message || ''; } catch(e){}
@@ -967,7 +968,8 @@ async function ghPut(c, data, sha){
 let syncing = false;
 async function syncNow(silent){
   const c = cfg();
-  if (!c.token || !c.owner || !c.repo) { if (!silent) { toast('I-setup anay ang GitHub sa Settings'); go('settings'); } return; }
+  const miss = [!c.owner && 'GitHub username', !c.repo && 'Data repo name', !c.token && 'Token'].filter(Boolean);
+  if (miss.length) { if (!silent) { toast('Kulang sa Settings: ' + miss.join(', ')); go('settings'); } return; }
   if (syncing) return;
   if (!navigator.onLine) { if (!silent) toast('Wala internet. Naka-save ang data sa cellphone; i-sync lang liwat dayon.'); return; }
   syncing = true; updateSyncBtn();
