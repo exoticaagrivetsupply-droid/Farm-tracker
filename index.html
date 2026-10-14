@@ -584,7 +584,7 @@ function getAlerts(){
     if (['growing','harvesting'].includes(p.status)) {
       const mons = db.activities.filter(a => a.plantingId === p.id && a.category === 'pest_monitoring').sort((x,y) => x.date.localeCompare(y.date));
       const last = mons[mons.length-1];
-      if (last && last.severity === 'High' && diffDays(last.date, t) <= 7)
+      if (last && last.severity === 'High' && last.pestFound && last.incidence == null && diffDays(last.date, t) <= 7)
         out.push({lvl:'danger', sort:-150, pid:p.id, html:`🐛 ${nm}: HIGH nga pest/disease — ${esc(last.pest || '')} (${fmtD(last.date)})`});
       if (!last || diffDays(last.date, t) > 7)
         out.push({lvl:'warn', sort:-100, pid:p.id, html:`🔍 ${nm}: Wala pa pest monitoring ${last ? 'kutob ' + fmtD(last.date) : ''} — mag-scout na`});
@@ -1565,6 +1565,7 @@ function viewWork(){
   return `<div class="wk-top"><div class="wk-h1">TRABAHO KARONG ADLAWA</div><div class="wk-date">${parseD(t).toLocaleDateString('en-PH', {weekday:'long', month:'long', day:'numeric', year:'numeric'})}</div>
     ${meCt ? `<div class="wk-me">👤 ${esc(meCt.name)}</div>` : ''}</div>
     <button class="bigbtn orange fp-main" onclick="fieldPhoto()">📷 PICTURAN ANG UMA</button>
+    ${pushCfg() && !pushOnHere() ? `<button class="bigbtn ghost fp-main" style="font-size:16px" onclick="enablePush()">🔔 I-ON ANG NOTIFICATION (${esc(pushCfg().amTime || '05:00')} ug ${esc(pushCfg().pmTime || '14:00')})</button>` : ''}
     ${(!isWorker() && Object.keys(orphanCts()).length ? `<div class="alert warn" onclick="ctForm()" style="cursor:pointer"><div>⚠️ <b>${Object.keys(orphanCts()).length} ka sinaligan ang nawala ang ngalan</b> pero naa pa ang ilang tanom. <u>Pindota diri</u> aron ibalik.</div></div>` : '')}
     ${chips}
     <div class="wk-tabs${showShareTab || !isWorker() ? ' four' : ''}">
@@ -2565,6 +2566,7 @@ function viewSettings(){
     : `<button class="btn" onclick="installApp()">📲 I-install sa cellphone</button><p class="hint">Para may icon sa home screen kag mag-abri bisan wala internet.</p>`;
   const f = farmSet();
   return `<div class="btnrow" style="margin-top:0"><button class="btn sm ghost" onclick="go('guide')">📖 Crop Guide</button><button class="btn sm ghost" onclick="ctForm()">👤 Sinaligan ug Partehanay</button></div>
+  ${notifSettingsHtml()}
   <h2>👷 Trabahante</h2><div class="card">
     <button class="btn" onclick="setWorkerMode()">👷 Himoa kini nga cellphone para sa trabahante</button>
     <p class="hint">Sa worker mode, ang TRABAHO KARONG ADLAWA ra ang makita. Kinahanglan og admin PIN para makabalik.</p>
@@ -3002,6 +3004,225 @@ function clearAll(){
   db = emptyDb(); persist(); const c = cfg(); delete c.lastSync; c.dirty = false; setCfg(c); render(); toast('Napanas na');
 }
 
+
+/* =========================================================
+   🔔 NOTIFICATION — GitHub Actions mopadala og push 5 AM ug 2 PM
+   - VAPID keys gihimo sa app (WebCrypto), gi-save sa data (private repo)
+   - Ang subscription sa matag cellphone gi-save sa data (settings)
+   - Ang workflow (farm-data repo) mo-run sa app logic (pushSummary) ug mopadala
+   ========================================================= */
+const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const b64uToU8 = s => { s = s.replace(/-/g, '+').replace(/_/g, '/'); s += '='.repeat((4 - s.length % 4) % 4); return Uint8Array.from(atob(s), c => c.charCodeAt(0)); };
+const pushCfg = () => settingRec('push') || null;
+const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && typeof Notification !== 'undefined';
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+/* Mensahe sa notification — gamiton usab sa GitHub Actions */
+function pushSummary(ses){
+  ses = ses || (new Date().getHours() < 12 ? 'am' : 'pm');
+  const t = today(), items = workItems();
+  const todo = items.filter(x => (x.status === 'todo' || x.status === 'wait') && x.due <= t && !(ses === 'am' && x.session === 'pm'));
+  const ct = isWorker() ? ctById(cfg().caretakerId) : null;
+  const order = {spray:0, pest:1, water:2, fert:3, task:4};
+  todo.sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9));
+  const line = x => {
+    const k = KIND_INFO[x.kind] || KIND_INFO.task;
+    const what = x.kind === 'task' || (x.key.includes(':t:') && x.kind !== 'water') ? x.label : k.title + (x.session ? ' (' + (x.session === 'am' ? 'buntag' : 'hapon') + ')' : '');
+    return `${k.icon} ${what} — ${crop(x.p).name.split(' (')[0]}${x.p.batch ? ' ' + x.p.batch : ''}`;
+  };
+  const lines = todo.slice(0, 6).map(line);
+  if (todo.length > 6) lines.push(`+${todo.length - 6} pa`);
+  const al = isWorker() ? [] : getAlerts().filter(a => a.lvl === 'danger').slice(0, 2).map(a => '⚠️ ' + a.html.replace(/<[^>]+>/g, '').slice(0, 110));
+  const nm = ct ? ', ' + ct.name : '';
+  if (!todo.length && !al.length) return {title: ses === 'am' ? `🌅 Maayong buntag${nm}!` : `🌇 Maayong hapon${nm}!`, body:'Walay trabaho nga nabilin karon. 👍', url:'#/work', tag:'farm-' + ses};
+  const head = ses === 'am' ? `🌅 Maayong buntag${nm}! ${todo.length} ka trabaho karon` : `🌇 Hapon${nm}: ${todo.length} ka trabaho nga nabilin`;
+  return {title:head, body:[...al, ...lines].join('\n'), url:'#/work', tag:'farm-' + ses};
+}
+
+async function ensurePushKeys(){
+  const cur = pushCfg();
+  if (cur && cur.pub && cur.priv) return cur;
+  const kp = await crypto.subtle.generateKey({name:'ECDSA', namedCurve:'P-256'}, true, ['sign', 'verify']);
+  const jwk = await crypto.subtle.exportKey('jwk', kp.privateKey);
+  const raw = new Uint8Array(await crypto.subtle.exportKey('raw', kp.publicKey));   // 65 bytes (0x04|x|y)
+  const rec = Object.assign({}, cur || {}, {id:'push', pub:b64u(raw), priv:jwk.d, appUrl:location.origin + location.pathname.replace(/index\.html$/, ''),
+    amTime:(cur && cur.amTime) || '05:00', pmTime:(cur && cur.pmTime) || '14:00'});
+  upsert('settings', rec);
+  return rec;
+}
+function subId(endpoint){ let h = 0; for (const ch of endpoint) h = (h * 31 + ch.charCodeAt(0)) | 0; return 'sub_' + (h >>> 0).toString(36); }
+async function enablePush(){
+  if (!pushSupported()) {
+    modal('🔔 Notification', isIOS() && !isStandalone()
+      ? '<p>Sa iPhone: i-<b>Add to Home Screen</b> una ang app (Share → Add to Home Screen), dayon ablihi gikan sa home screen ug balika kini.</p>'
+      : '<p>Kini nga browser dili mo-support og notification. Gamita ang <b>Google Chrome</b> sa Android ug i-install ang app.</p>');
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') { modal('🔔 Notification', '<p>Wala gitugotan ang notification. Adto sa <b>Settings sa cellphone → Apps → Chrome (o Farm Tracker) → Notifications</b> ug i-ON, dayon balika.</p>'); return; }
+  try {
+    const pc = await ensurePushKeys();
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      const k = sub.options && sub.options.applicationServerKey ? b64u(sub.options.applicationServerKey) : null;
+      if (k && k !== pc.pub) { await sub.unsubscribe(); sub = null; }
+    }
+    if (!sub) sub = await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64uToU8(pc.pub)});
+    const j = sub.toJSON(), id = subId(j.endpoint), ct = isWorker() ? ctById(cfg().caretakerId) : null;
+    upsert('settings', {id, type:'pushsub', sub:j, role:isWorker() ? 'worker' : 'admin', caretakerId: isWorker() ? (cfg().caretakerId || null) : null,
+      label:(ct ? ct.name : isWorker() ? 'Trabahante' : 'Admin') + ' · ' + (/android/i.test(navigator.userAgent) ? 'Android' : isIOS() ? 'iPhone' : 'Computer'), removed:false});
+    const c = cfg(); c.pushSubId = id; setCfg(c);
+    syncNow(true);
+    await testNotif();
+    render();
+    toast('🔔 Na-ON ang notification');
+  } catch(e) { modal('🔔 Notification', `<p class="neg">Dili ma-ON: ${esc(e.message)}</p><p class="small">Siguroha nga gi-install ang app ug naa kay internet.</p>`); }
+}
+async function disablePush(){
+  try { const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription(); if (sub) await sub.unsubscribe(); } catch(e) {}
+  const c = cfg(); const id = c.pushSubId; delete c.pushSubId; setCfg(c);
+  const r = id && settingRec(id); if (r) upsert('settings', Object.assign({}, r, {removed:true}));
+  render(); toast('🔕 Na-OFF ang notification niini nga cellphone');
+}
+async function testNotif(){
+  const m = pushSummary();
+  try { const reg = await navigator.serviceWorker.ready; await reg.showNotification(m.title, {body:m.body, icon:'icon-192.png', badge:'icon-192.png', tag:'farm-test', data:{url:'#/work'}}); }
+  catch(e) { toast('Test: ' + m.title); }
+}
+const pushOnHere = () => { const c = cfg(); const r = c.pushSubId && settingRec(c.pushSubId); return !!(r && !r.removed) && typeof Notification !== 'undefined' && Notification.permission === 'granted'; };
+
+/* ---------- GitHub Actions workflow ---------- */
+function cronFor(hhmm){
+  const [h, m] = String(hhmm || '05:00').split(':').map(Number);
+  const offMin = -new Date().getTimezoneOffset();             // PH = +480
+  let utc = (h * 60 + (m || 0) - offMin) % 1440; if (utc < 0) utc += 1440;
+  return `${utc % 60} ${Math.floor(utc / 60)} * * *`;
+}
+function workflowYml(pc, dataPath){
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Manila';
+  return `# Farm Tracker — notification ${pc.amTime} ug ${pc.pmTime} (${tz}). Gihimo sa app; ayaw usba diri.
+name: Farm Tracker notifications
+on:
+  schedule:
+    - cron: '${cronFor(pc.amTime)}'
+    - cron: '${cronFor(pc.pmTime)}'
+  workflow_dispatch:
+    inputs:
+      session:
+        description: 'am, pm o auto'
+        default: 'auto'
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TZ: ${tz}
+      DATA_PATH: ${dataPath}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-save --no-package-lock web-push@3.6.7 jsdom@24.1.0
+      - run: node notify/notify.mjs \${{ github.event.inputs.session || 'auto' }}
+`;
+}
+const NOTIFY_MJS = `// Farm Tracker — mopadala og notification (gikan sa GitHub Actions). Gihimo sa app.
+import fs from 'node:fs';
+import webpush from 'web-push';
+import { JSDOM } from 'jsdom';
+const arg = process.argv[2];
+const ses = arg && arg !== 'auto' ? arg : (new Date().getHours() < 12 ? 'am' : 'pm');
+const data = JSON.parse(fs.readFileSync(process.env.DATA_PATH || 'farm-data.json', 'utf8'));
+const push = (data.settings || []).find(s => s.id === 'push');
+if (!push || !push.pub || !push.priv) { console.log('Walay push keys.'); process.exit(0); }
+webpush.setVapidDetails(/^https:/.test(push.appUrl) ? push.appUrl : 'mailto:farmtracker@example.com', push.pub, push.priv);
+const appUrl = process.env.APP_URL || push.appUrl;
+const base = appUrl.endsWith('/') ? appUrl : appUrl + '/';
+const html = await (await fetch(base + 'index.html', { cache: 'no-store' })).text();
+const subs = (data.settings || []).filter(s => s.type === 'pushsub' && !s.removed && s.sub && s.sub.endpoint);
+let sent = 0;
+for (const s of subs) {
+  const dom = new JSDOM(html, { runScripts: 'dangerously', url: base, beforeParse(w) {
+    w.localStorage.setItem('umaTracker.data.v1', JSON.stringify(data));
+    w.localStorage.setItem('umaTracker.cfg.v1', JSON.stringify({ role: s.role === 'worker' ? 'worker' : 'admin', caretakerId: s.caretakerId || null }));
+    w.matchMedia = () => ({ matches: false }); w.scrollTo = () => {};
+    w.fetch = async () => ({ ok: false, status: 0, json: async () => ({}), text: async () => '' });
+  } });
+  await new Promise(r => setTimeout(r, 300));
+  let msg = null;
+  try { msg = dom.window.pushSummary(ses); } catch (e) { console.log('summary error', e.message); }
+  dom.window.close();
+  if (!msg) continue;
+  try { await webpush.sendNotification(s.sub, JSON.stringify(msg), { TTL: 6 * 3600 }); sent++; console.log('OK', s.label || s.id, '-', msg.title); }
+  catch (e) { console.log('FAIL', s.label || s.id, e.statusCode, e.body || e.message); }
+}
+console.log('Napadala:', sent, 'sa', subs.length);
+process.exit(0);
+`;
+async function ghPutFile(c, path, text, message){
+  const url = ghUrl(Object.assign({}, c, {path}));
+  const h = {Authorization:'Bearer ' + c.token, Accept:'application/vnd.github+json'};
+  let sha;
+  const g = await fetch(url + '?ref=' + encodeURIComponent(c.branch || 'main'), {headers:h, cache:'no-store'});
+  if (g.ok) sha = (await g.json()).sha;
+  const r = await fetch(url, {method:'PUT', headers:Object.assign({'Content-Type':'application/json'}, h), body:JSON.stringify({message, content:b64enc(text), branch:c.branch || 'main', sha})});
+  if (!r.ok) { const e = new Error(await ghErr(r)); e.status = r.status; throw e; }
+}
+async function installNotifyWorkflow(){
+  const c = cfg();
+  if (!c.token || !c.owner || !c.repo) { toast('I-setup una ang GitHub Sync'); return; }
+  toast('Gibutang sa GitHub…');
+  try {
+    const pc = await ensurePushKeys();
+    await syncNow(true);
+    await ghPutFile(c, 'notify/notify.mjs', NOTIFY_MJS, 'Farm Tracker: notification script');
+    await ghPutFile(c, '.github/workflows/farm-notify.yml', workflowYml(pc, c.path || 'farm-data.json'), 'Farm Tracker: notification schedule');
+    upsert('settings', Object.assign({}, pushCfg(), {installedAt:nowISO(), installedAm:pc.amTime, installedPm:pc.pmTime}));
+    syncNow(true); render();
+    modal('✅ Na-setup sa GitHub', `<p>Mopadala na og notification kada <b>${esc(pc.amTime)}</b> ug <b>${esc(pc.pmTime)}</b> sa tanang cellphone nga naka-ON.</p>
+      <p class="small muted">Ang GitHub usahay malangan og 5–30 minutos.</p>
+      <button class="bigbtn" onclick="runNotifyNow()">🚀 Sulayi karon (padala dayon)</button>`);
+  } catch(e) {
+    const perm = e.status === 403 || e.status === 404 || /permiso|Resource not accessible|workflow/i.test(e.message);
+    modal('⚙️ Kinahanglan og dugang permiso', perm ? `<p>Ang token kinahanglan og permiso sa <b>Workflows</b>. Usa ra ka higayon:</p>
+      <ol><li>Ablihi ang <a href="https://github.com/settings/tokens?type=beta" target="_blank">github.com/settings/tokens</a> → pindota ang imong token (farm-tracker).</li>
+      <li><b>Permissions → Repository permissions</b>: <b>Workflows → Read and write</b>, ug <b>Actions → Read and write</b>.</li>
+      <li>Pindota <b>Update</b> sa ubos (pareho ra ang token, dili kinahanglan i-copy pag-usab).</li>
+      <li>Balik diri ug pindota pag-usab ang <b>⚙️ I-setup sa GitHub</b>.</li></ol>
+      <p class="small muted">Error: ${esc(e.message)}</p>` : `<p class="neg">${esc(e.message)}</p>`);
+  }
+}
+async function runNotifyNow(){
+  const c = cfg();
+  await syncNow(true);
+  const r = await fetch(`https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}/actions/workflows/farm-notify.yml/dispatches`,
+    {method:'POST', headers:{Authorization:'Bearer ' + c.token, Accept:'application/vnd.github+json', 'Content-Type':'application/json'}, body:JSON.stringify({ref:c.branch || 'main', inputs:{session:'auto'}})});
+  if (r.ok || r.status === 204) { closeModal(); toast('🚀 Gipadala sa GitHub — moabot sulod sa 1–2 minutos'); }
+  else modal('🚀 Sulayi karon', `<p>Dili ma-start gikan diri (${r.status}). Sa GitHub: ablihi ang <b>farm-data</b> repo → <b>Actions</b> → <b>Farm Tracker notifications</b> → <b>Run workflow</b>.</p>`);
+}
+function pushTimesForm(){
+  const pc = pushCfg() || {amTime:'05:00', pmTime:'14:00'};
+  modal('⏰ Oras sa notification', `
+    <div class="row2"><label>🌅 Buntag<input type="time" id="f_am" value="${esc(pc.amTime || '05:00')}"></label>
+    <label>🌇 Hapon<input type="time" id="f_pm" value="${esc(pc.pmTime || '14:00')}"></label></div>
+    <p class="hint">Human ma-save, pindota pag-usab ang ⚙️ I-setup sa GitHub aron mausab ang schedule.</p>`,
+  () => { upsert('settings', Object.assign({}, pushCfg() || {id:'push'}, {id:'push', amTime:v('f_am') || '05:00', pmTime:v('f_pm') || '14:00'})); toast('Na-save — i-setup pag-usab sa GitHub'); });
+}
+function notifSettingsHtml(){
+  const pc = pushCfg(), subs = db.settings.filter(s => s.type === 'pushsub' && !s.removed);
+  const inst = pc && pc.installedAt, changed = inst && (pc.installedAm !== pc.amTime || pc.installedPm !== pc.pmTime);
+  return `<h2>🔔 Notification</h2><div class="card">
+    <p style="margin-top:0">Mopadala og listahan sa trabaho sa cellphone kada <b>${esc((pc && pc.amTime) || '05:00')}</b> ug <b>${esc((pc && pc.pmTime) || '14:00')}</b>. <a href="#" onclick="event.preventDefault();pushTimesForm()">Usba ang oras</a></p>
+    <div class="rowi" style="cursor:default"><span class="ic">${pushOnHere() ? '✅' : '1️⃣'}</span><div class="grow"><b>Niini nga cellphone</b><div class="small muted">${pushOnHere() ? 'Naka-ON' : 'Naka-OFF'}</div></div>
+      ${pushOnHere() ? `<button class="btn sm ghost" onclick="testNotif()">🧪 Test</button><button class="btn sm ghost" onclick="disablePush()">OFF</button>` : `<button class="btn sm" onclick="enablePush()">🔔 I-ON</button>`}</div>
+    <div class="rowi" style="cursor:default"><span class="ic">${inst && !changed ? '✅' : '2️⃣'}</span><div class="grow"><b>Schedule sa GitHub</b><div class="small muted">${inst ? (changed ? '<span class="neg">Nausab ang oras — i-setup pag-usab</span>' : 'Naka-setup ' + fmtD(inst.slice(0, 10))) : 'Wala pa (kausa ra)'}</div></div>
+      <button class="btn sm ${inst && !changed ? 'ghost' : ''}" onclick="installNotifyWorkflow()">⚙️ ${inst ? 'I-update' : 'I-setup sa GitHub'}</button></div>
+    ${inst ? `<div class="btnrow"><button class="btn sm ghost" onclick="runNotifyNow()">🚀 Sulayi karon (padala dayon)</button></div>` : ''}
+    ${subs.length ? `<p class="small" style="margin-bottom:0"><b>Mga cellphone nga naka-ON (${subs.length}):</b> ${subs.map(s => esc(s.label || s.id)).join(', ')}</p>` : ''}
+    <p class="hint">Para sa taho: sa ilang cellphone, ablihi ang app → pindota ang <b>🔔 I-ON ang notification</b> sa Trabaho page. iPhone: i-Add to Home Screen una.</p></div>`;
+}
 
 /* ---------- Install as app (PWA) ---------- */
 let installEvt = null;

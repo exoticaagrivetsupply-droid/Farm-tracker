@@ -28,6 +28,20 @@ Ablihi ang app ug sundon lang ang makita:
 - Ang hilo: ang manager ra (uban ang technician) ang modesisyon, gamit ang produkto nga **rehistrado sa FPA**. Walay automatic nga spray.
 - Kon gusto nga dili kada adlaw: Crop Schedule → Pest check → "Kada pila ka adlaw".
 
+## 🔔 Notification (5:00 AM ug 2:00 PM)
+Ang **GitHub Actions** (libre) sa imong private nga `farm-data` repo maoy mopadala sa listahan sa trabaho ngadto sa cellphone. Ang admin makakita usab sa mga alert (sakit, peste). Ang matag taho, iyang trabaho ra ang makita.
+
+**Setup (kausa ra, sa imong cellphone):**
+1. ⚙️ Settings → 🔔 Notification → **🔔 I-ON** → **Allow**. Mogawas dayon ang test nga notification.
+2. **⚙️ I-setup sa GitHub**. Kon mogawas ang "Kinahanglan og dugang permiso": github.com → Settings → Developer settings → Fine-grained tokens → ang imong token → **Workflows: Read and write** ug **Actions: Read and write** → Update. Dayon balika ang ⚙️ I-setup sa GitHub.
+3. **🚀 Sulayi karon** aron masulayan nga moabot gikan sa GitHub (1–2 minutos).
+
+**Sa cellphone sa matag taho:** ablihi ang app → **🔔 I-ON ANG NOTIFICATION** sa Trabaho page → Allow.
+- Android: gamita ang Chrome ug i-install ang app.
+- iPhone: i-Add to Home Screen una (iOS 16.4 pataas).
+- Usba ang oras: Settings → 🔔 → "Usba ang oras" → ⚙️ I-update.
+- Ang GitHub usahay malangan og 5–30 minutos.
+
 ## 📷 Picturan ang uma (bisan kanus-a)
 - Dako nga button nga **📷 PICTURAN ANG UMA** sa ibabaw sa ✅ Trabaho (para sa admin ug sa taho), sa ➕ menu, ug sa 🐛 Peste tab sa tanom.
 - Pilia ang tanom → **📷 CAMERA** o **🖼️ GALLERY** (pwede daghan) → unsa ni: 🐛 Mananap / 🍂 Sakit (uban ang sintomas) / 🌱 Kahimtang sa tanom / 💧 Tubig-yuta / 📌 Uban → nota → **I-SAVE**.

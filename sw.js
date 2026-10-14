@@ -1,5 +1,5 @@
 // Farm Tracker service worker: makes the app installable and usable offline.
-const CACHE = 'farm-tracker-v15';
+const CACHE = 'farm-tracker-v17';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
@@ -21,4 +21,22 @@ self.addEventListener('fetch', e => {
   e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => {
     const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); return res;
   })));
+});
+
+// 🔔 Push notifications (gikan sa GitHub Actions, 5 AM ug 2 PM)
+self.addEventListener('push', e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (_) { d = {title:'Farm Tracker', body: e.data ? e.data.text() : ''}; }
+  e.waitUntil(self.registration.showNotification(d.title || 'Farm Tracker', {
+    body: d.body || '', icon: 'icon-192.png', badge: 'icon-192.png', tag: d.tag || 'farm', renotify: true,
+    data: {url: d.url || '#/work'}
+  }));
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = new URL((e.notification.data && e.notification.data.url) || '#/work', self.registration.scope).href;
+  e.waitUntil(clients.matchAll({type:'window', includeUncontrolled:true}).then(cs => {
+    for (const c of cs) if (c.url.startsWith(self.registration.scope)) { if (c.navigate) c.navigate(url).catch(() => {}); return c.focus(); }
+    return clients.openWindow(url);
+  }));
 });
