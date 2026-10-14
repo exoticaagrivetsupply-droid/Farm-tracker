@@ -146,6 +146,20 @@ body.worker main{padding-bottom:40px}
 .bd-row{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}.bd-row:last-child{border-bottom:0}
 .bd-row.late{background:#fff5f4}.bd-amt{font-weight:800;white-space:nowrap;text-align:right}
 .wk-tabs.four button{font-size:12px}
+.wk-sess{background:#fff1c2;border-radius:10px;padding:8px 10px;font-size:15px;margin-bottom:6px}
+.ps-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:10px 0}
+.ps-btn{position:relative;min-height:62px;border:2px solid var(--line);background:#fff;border-radius:14px;font-size:22px;font-weight:800;cursor:pointer;color:var(--ink)}
+.ps-btn.on{background:#e8710a;border-color:#e8710a;color:#fff}.ps-btn small{display:block;font-size:11px;font-weight:600}
+.ps-sum{text-align:center;font-size:17px;padding:10px;background:var(--card);border-radius:12px;border:1px solid var(--line)}
+.ps-thumbs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.ps-thumbs img{width:72px;height:72px;object-fit:cover;border-radius:8px;background:#eee}
+.ps-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px}
+.ps-gallery figure{margin:0;cursor:pointer;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.ps-gallery img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:#eee}.ps-gallery figcaption{font-size:11px;padding:4px 6px;line-height:1.3}
+.pr-tbl td{font-size:14px;vertical-align:top}.pr-tbl td:first-child{white-space:nowrap;padding-right:8px}.pr-tbl td:last-child{text-align:left;font-weight:400}.warnc{color:#b26a00;font-weight:700}
+.crit-box{background:#fff1c2;border:2px solid #e3a008;border-radius:12px;padding:10px 12px;margin:8px 0;font-size:15px}
+.crit-next{background:var(--blue2);border-radius:10px;padding:6px 10px;margin:6px 0}
+.crit-rain{background:#e3eef8;border-left:5px solid var(--blue);border-radius:10px;padding:8px 10px;margin:6px 0;font-size:15px}
+.ps-btn.dis{background:#8d5a2b;border-color:#8d5a2b;color:#fff}
 @media print{header,nav,.fab,.btnrow,.tabs{display:none}main{padding:0}}
 </style>
 </head>
@@ -190,6 +204,9 @@ const CROPS = {
   sitaw:       {name:'Sitaw', emoji:'🫛', days:60},
   pechay:      {name:'Pechay', emoji:'🥬', days:35},
   pepper:      {name:'Pepper (Sili)', emoji:'🌶️', days:80},
+  cucumber:    {name:'Cucumber (Pipino)', emoji:'🥒', days:50},
+  chinese_cabbage:{name:'Chinese Cabbage (Pechay Baguio / Wombok)', emoji:'🥬', days:55},
+  carrot:      {name:'Carrot', emoji:'🥕', days:90},
   other:       {name:'Other', emoji:'🌿', days:60}
 };
 
@@ -291,6 +308,56 @@ const TASKS = {
     [45,'pest_monitoring','Check sa fruitworm sa bunga','Tan-awa ang bunga kung naay buslot. Pamupoa ug ilubong ang bunga nga naay ulod.'],
     ['H','harvest_cost','Unang harvest (nagsugod na mapula)','Pamupo kon nagsugod na mapula. 2 ka higayon kada semana. I-check una ang PHI.']
   ],
+  eggplant: [
+    [-30,'seeds','Pagpugas sa seedling trays','Humok nga media, naay atop. 1 ka binhi kada cell. Bisbisi gamay sa buntag ug hapon.'],
+    [-14,'land_prep','Pag-daro','Darohi 20–25 cm. Ayaw itanom sa dapit nga gitamnan og talong, kamatis o sili sa miaging season (bacterial wilt).'],
+    [-7,'land_prep','Harrowing + beds + compost','Harrow ug himoa ang beds. Isagol ang dunot nga compost.'],
+    [0,'planting','Transplant + basal nga abono','Transplant sa hapon. Ibutang ang basal nga abono sa lungag ug tabuni una og yuta. Bisbisi dayon.'],
+    [7,'planting','Ilisi ang namatay nga seedlings','Ilisi ang namatay. Tan-awa kung naay cutworm o kalit nga malaya.'],
+    [10,'pest_monitoring','Check sa leafhopper ug aphids','Tan-awa ang ilalom sa dahon. Ang dahon nga nadalag ang ngilit = leafhopper.'],
+    [21,'fertilizer','1st sidedress + pag-gabot sa sagbot','Gabuta ang sagbot, ibutang ang abono 10 cm gikan sa punoan, tabuni ug bisbisi.'],
+    [30,'materials','Pagbutang og stake','Ibutang ang stake aron dili matumba kon daghan na ang bunga.'],
+    [40,'pest_monitoring','Check sa fruit & shoot borer','Tan-awa ang nalaya nga tumoy sa sanga ug buslot sa bunga. Putla ug ilubong ang apektado.'],
+    [45,'fertilizer','2nd sidedress (pagpamulak)','Ibutang ang abono sumala sa schedule sa admin. Siguroha nga regular ang tubig.'],
+    ['H','harvest_cost','Unang harvest','Pamupo kon sinaw pa ang panit ug humok pa ang liso. 2 ka higayon kada semana. I-check una ang PHI.']
+  ],
+  cucumber: [
+    [-14,'land_prep','Pag-daro','Darohi 20–25 cm. Limpyohi ang sagbot.'],
+    [-7,'land_prep','Harrowing + beds + compost','Himoa ang beds ug isagol ang dunot nga compost.'],
+    [0,'planting','Pagtanom (2 ka binhi kada lungag) + basal nga abono','Ibutang ang basal nga abono ug tabuni una og yuta. 2 ka binhi kada lungag, 2 cm kalalom. Bisbisi.'],
+    [5,'pest_monitoring','Check sa mitubo, tamni ang wala mitubo','Tamni dayon ang lungag nga walay mitubo. Tan-awa ang squash beetle sa batan-on nga dahon.'],
+    [10,'weeding','Thinning + pag-gabot sa sagbot','Bilini ang 1–2 ka pinakanindot nga tanom kada lungag. Gabuta ang sagbot.'],
+    [14,'materials','Trellis / balagonan','Ibutang ang trellis o pisi aron mokamang ang balagon. Mas limpyo ug dili madunot ang bunga.'],
+    [18,'fertilizer','1st sidedress','Ibutang ang abono 5–10 cm gikan sa punoan ug tabuni. Bisbisi.'],
+    [21,'pest_monitoring','Check sa aphids, thrips ug downy mildew','Tan-awa ang ilalom sa dahon (kuto, thrips) ug ang dalag nga kuwadrado nga spots (downy mildew).'],
+    [30,'fertilizer','2nd sidedress (pagpamulak)','Ibutang ang abono sumala sa schedule sa admin.'],
+    [35,'pest_monitoring','Check sa fruit fly; butangi og trap','Tan-awa ang gagmay nga bunga kung naay tusok. Butangi og fruit fly trap.'],
+    ['H','harvest_cost','Harvest (kada 1–2 ka adlaw)','Pamupo kon sakto na ang gidak-on ug berde pa. Ayaw paabota nga modako kaayo. I-check una ang PHI.']
+  ],
+  chinese_cabbage: [
+    [-25,'seeds','Pagpugas sa seedling trays','Humok nga media, naay atop. 1 ka binhi kada cell.'],
+    [-14,'land_prep','Pag-daro','Darohi 20–25 cm.'],
+    [-7,'land_prep','Harrowing + raised beds','Himoa ang raised beds. Isagol ang compost (ug lime kon acidic, sumala sa soil test).'],
+    [0,'planting','Transplant + basal nga abono','Transplant sa hapon. Ibutang ang basal nga abono sa lungag ug tabuni una. Bisbisi dayon.'],
+    [7,'planting','Ilisi ang namatay nga seedlings','Ilisi ang namatay. Tan-awa ang cutworm ug flea beetle.'],
+    [10,'pest_monitoring','Check sa diamondback moth ug flea beetle','Tan-awa ang ilalom sa dahon ug gagmay nga buslot.'],
+    [14,'fertilizer','1st sidedress + pag-gabot sa sagbot','Gabuta ang sagbot, ibutang ang abono 5–10 cm gikan sa punoan ug tabuni.'],
+    [28,'fertilizer','2nd sidedress','Pareha sa 1st sidedress.'],
+    [35,'pest_monitoring','Check sa ulo: soft rot ug ulod','Tan-awa ang ulo kung naay humok nga dunot o ulod. Ayaw tugoti nga malunang.'],
+    ['H','harvest_cost','Harvest (hugot na ang ulo)','Ani kon hugot na ang ulo. Ani sa buntag. I-check una ang PHI.']
+  ],
+  carrot: [
+    [-14,'land_prep','Lawom nga pag-daro (30 cm)','Darohi og lawom (25–30 cm). Kuhaa ang bato ug gamot — makapasanga sa carrot.'],
+    [-7,'land_prep','Humok nga raised beds + dunot nga compost','Himoa ang humok kaayo nga beds. Dunot ra nga compost (ang presko nga manure makapasanga sa carrot).'],
+    [0,'planting','Pagpugas sa binhi (drill) + basal nga abono','Isablig ang basal nga abono ug isagol. Ipugas ang binhi sa linya, 1 cm kalalom. Tabuni og nipis nga yuta ug bisbisi.'],
+    [10,'pest_monitoring','Check sa mitubo; ayaw tugoti nga mauga','Bisbisi gamay kada adlaw hangtod mitubo. Tan-awa ang cutworm.'],
+    [21,'weeding','Thinning (5 cm) + pag-gabot sa sagbot','Kuhaa ang sobra aron 5 cm ang gilay-on. Gabuta ang sagbot gamit ang kamot.'],
+    [30,'fertilizer','1st sidedress + pag-gabot sa sagbot','Ibutang ang abono sa tunga sa laray ug tabuni. Bisbisi.'],
+    [45,'weeding','Hilling-up (tabuni ang ibabaw sa carrot)','Tabuni og yuta ang ibabaw sa ugat aron dili mo-berde.'],
+    [50,'fertilizer','2nd sidedress','Ibutang ang abono sumala sa schedule sa admin.'],
+    [60,'pest_monitoring','Check sa leaf blight','Tan-awa ang dahon kung naay itom-brown nga spots.'],
+    ['H','harvest_cost','Harvest','Ibta kon sakto na ang gidak-on. Bisbisi una aron humok ang yuta. I-check una ang PHI.']
+  ],
   other: [
     [-14,'land_prep','Pag-andam sa yuta','Daro ug harrow hangtod mohumok ang yuta. Isagol ang compost.'],
     [0,'planting','Pagtanom + basal nga abono','Ibutang ang basal nga abono ug tabuni una og yuta. Bisbisi dayon.'],
@@ -303,6 +370,34 @@ const TASKS = {
 
 /* ---------- Crop guides ---------- */
 const GUIDE = {
+  eggplant: {
+    land:['Darohi ug himoa ang beds nga maayo ang drainage.','Ayaw itanom sa dapit nga gitamnan og talong, kamatis o sili sa miaging season (bacterial wilt).'],
+    plant:['Seedling trays; transplant sa 4–5 ka semana.','Spacing: mga 100 cm tali sa laray × 50 cm tali sa tanom.','Stake human sa 3–4 ka semana.'],
+    fert:['Basal: complete + organic.','Sidedress sa 3 ka semana ug sa pagpamulak.','Para sa sakto nga rate: soil test sa DA / Municipal Agriculturist.'],
+    pests:['Fruit & shoot borer — nalaya nga tumoy ug buslot sa bunga; putla ug ilubong.','Leafhopper — nadalag ang ngilit sa dahon.','Mites, thrips, whitefly, aphids.','Sakit: bacterial wilt, phomopsis blight, little leaf, damping off.'],
+    harv:['Unang harvest mga 60–75 ka adlaw human sa transplant.','Pamupo kon sinaw pa ang panit. 2 ka higayon kada semana.']
+  },
+  cucumber: {
+    land:['Beds nga maayo ang drainage; dunot nga compost.','Trellis o pisi — mas limpyo ug dili madunot ang bunga.'],
+    plant:['Direct seeding: 2 ka binhi kada lungag; spacing mga 100 cm × 30 cm.','Thinning sa 10 ka adlaw: 1–2 ka tanom kada lungag.'],
+    fert:['Basal: complete + organic.','Sidedress sa ~18 ka adlaw ug sa pagpamulak.'],
+    pests:['Squash beetle, aphids, thrips, whitefly (nagdala og virus), leafminer, fruit fly, melon worm.','Sakit: downy mildew (dalag nga kuwadrado nga spots), powdery mildew, mosaic virus, anthracnose.'],
+    harv:['Unang harvest mga 40–50 ka adlaw.','Pamupo kada 1–2 ka adlaw — kon modako kaayo, mopait ug mohinay ang pagbunga.']
+  },
+  chinese_cabbage: {
+    land:['Raised beds nga maayo ang drainage. Lime kon acidic (sumala sa soil test).'],
+    plant:['Seedling trays; transplant sa 3–4 ka semana.','Spacing: mga 50 cm × 30 cm.'],
+    fert:['Basal: complete + organic.','Sidedress sa 2 ug 4 ka semana human sa transplant.'],
+    pests:['Diamondback moth, flea beetle, cutworm, aphids, armyworm.','Sakit: soft rot (labi na sa basa), black rot, alternaria leaf spot, downy mildew.'],
+    harv:['Mga 45–60 ka adlaw human sa transplant, kon hugot na ang ulo.','Ani sa buntag; ayaw dugaya kay modunot sa basa nga panahon.']
+  },
+  carrot: {
+    land:['Lawom nga pag-daro (25–30 cm); kuhaa ang bato.','Humok nga raised beds. Dunot ra nga compost — ang presko nga manure makapasanga sa carrot.'],
+    plant:['Direct seeding sa linya, 1 cm kalalom; laray mga 20 cm.','Thinning sa ~3 ka semana: 5 cm ang gilay-on.','Bisbisi gamay kada adlaw hangtod mitubo.'],
+    fert:['Basal: complete + organic.','Sidedress sa ~30 ug ~50 ka adlaw.'],
+    pests:['Cutworm, armyworm, aphids, leafminer, nematode (nagsanga nga ugat).','Sakit: leaf blight (Alternaria), cercospora leaf spot, soft rot.'],
+    harv:['Mga 80–100 ka adlaw.','Bisbisi una aron humok ang yuta, dayon ibta.']
+  },
   sweet_corn: {
     land:['Arado 1x, harrow 2x, mga 20–25 cm kadalom.','Furrows 75 cm ang layo. Isagol ang compost/manure 2–4 ka semana antes magtanom.','Ilayo sa field corn (ukon 2+ ka semana ang gap sa pagtanom) para indi mag-cross pollinate kag magtig-a ang lasa.'],
     plant:['1–2 seeds kada hill, 20–25 cm ang layo, 75 cm between rows.','Thinning sa 10–14 DAP, isa lang ka tanom kada hill.'],
@@ -466,10 +561,18 @@ function getAlerts(){
     db.activities.filter(a => a.plantingId === p.id && a.needsCost && !Number(a.cost)).forEach(a => out.push({lvl:'warn', sort:-90, pid:p.id,
       html:`💵 ${nm}: Ibutang ang bayad — ${esc(a.desc)} (${a.qty} ka tawo, ${fmtD(a.date)})`}));
     // reports gikan sa trabahante
+    // kritikal nga stage + ulan
+    if (p.status !== 'planned') {
+      const dapA = diffDays(p.datePlanted, t), cn = critNow(p, dapA), nx = critNext(p, dapA, 3), rr = rainRisk();
+      if (cn) out.push({lvl: rr && cn.dis.length ? 'warn' : 'info', sort:-60, pid:p.id, tab:'pests', html:`⚠️ ${nm}: <b>KRITIKAL NGA STAGE — ${esc(cn.name)}</b> (Day ${dapA}). Bantayi: ${cn.pests.concat(cn.dis).slice(0, 5).map(esc).join(', ')}${rr && cn.dis.length ? ` · 🌧️ <b>naulan ${fmtN(rr.mm, 0)} mm — taas ang risgo sa sakit</b>` : ''}`});
+      else if (nx) out.push({lvl:'info', sort:-50, pid:p.id, tab:'pests', html:`⏳ ${nm}: Sa ${nx.from - dapA} ka adlaw — kritikal nga stage <b>${esc(nx.name)}</b>. Andama: ${nx.pests.concat(nx.dis).slice(0, 4).map(esc).join(', ')}`});
+    }
+    db.activities.filter(a => a.plantingId === p.id && a.diseaseFound && diffDays(a.date, t) <= 7).slice(-1).forEach(a => out.push({lvl:'danger', sort:-175, pid:p.id, tab:'pests',
+      html:`🍂 ${nm}: <b>Naay SAKIT</b> — ${esc(a.disease)} (${a.disInc}% sa sample) ${sessLabel(a.session)}${photoList(a).length ? ' 📷' : ''}. Tan-awa ang 🐛 Peste report ug pangutana sa technician.`}));
     db.activities.filter(a => a.plantingId === p.id && (a.pestFound || a.help) && diffDays(a.date, t) <= 7).forEach(a => {
       const hasOrder = db.orders.some(o => o.plantingId === p.id && !o.cancelled && o.date >= a.date);
       if (a.help && a.outcome !== 'done') out.push({lvl:'danger', sort:-180, pid:p.id, html:`🆘 ${nm}: Nangayo og <b>TABANG</b> ang trabahante sa pest check (${fmtD(a.date)})`});
-      else if (a.pestFound && !hasOrder) out.push({lvl:'danger', sort:-170, pid:p.id, html:`🐛 ${nm}: Naay peste nakit-an — <b>${esc(a.pest)}</b> (${esc(a.severity)})${a.photo ? ' 📷' : ''}. I-review; himoa ang Spray Order kon kinahanglan gyud.`});
+      else if (a.pestFound && !hasOrder) out.push({lvl:'danger', sort:-170, pid:p.id, html:`🐛 ${nm}: Naay peste nakit-an — <b>${esc(a.pest)}</b> (${a.incidence != null ? a.incidence + '% sa sample' : esc(a.severity)})${sessLabel(a.session) ? ' ' + sessLabel(a.session) : ''}${photoList(a).length ? ' 📷' + photoList(a).length : ''}. Tan-awa ang 🐛 Peste report; himoa ang Spray Order kon kinahanglan gyud.`, tab:'pests'});
     });
     // pest monitoring
     if (['growing','harvesting'].includes(p.status)) {
@@ -511,6 +614,7 @@ function render(){
     (worker ? `<div style="text-align:center;margin-top:30px"><button class="btn sm ghost" onclick="adminUnlock()">🔒 Admin</button></div>` : '');
   const navs = [['work','✅','Trabaho'],['dash','🏠','Dashboard'],['plantings','🌱','Mga Tanom'],['records','📒','Records'],['share','💰','Partehanay'],['settings','⚙️','Settings']];
   const cur = state.view === 'planting' ? 'plantings' : state.view;
+  setTimeout(loadThumbs, 0);
   $('#nav').innerHTML = worker ? '' : navs.map(([k,i,l]) => `<button class="${cur===k?'on':''}" onclick="go('${k}')"><span>${i}</span>${l}</button>`).join('');
   updateSyncBtn();
 }
@@ -533,7 +637,7 @@ const TPL_OPTS = {
   cabbage:    {waterYoung:1, waterOld:2, pestEvery:4},
   tomato:     {waterYoung:1, waterOld:2, pestEvery:4},
   green_onion:{waterYoung:1, waterOld:2, pestEvery:7},
-  other:      {waterYoung:1, waterOld:2, pestEvery:7}
+  other:      {waterYoung:1, waterOld:2, pestEvery:7, pestMode:'ampm', samples:10}
 };
 function defaultTemplate(cropKey){
   const src = TASKS[cropKey] || TASKS.other;
@@ -611,13 +715,17 @@ const WATER_HOW = `<ol class="wk-steps">
   <li><b>UGA</b> ug mabuak-buak → <b>PATUBIGI</b>.</li>
   <li><b>BASA</b> ug mopilit sa kamot → <b>AYAW PATUBIGI</b>. Pindota ang "BASA PA ANG YUTA".</li></ol>`;
 const PEST_HOW = {
-  sweet_corn:'Lakaw sa uma pa-zigzag. Tan-awa ang 20 ka tanom sa lain-laing dapit. Tan-awa ang <b>dahon ug sulod sa whorl</b> (tunga sa tanom) kung naay <b>buslot, gisi-gisi nga dahon</b>, o hugaw sa ulod nga murag gabas.',
-  kalabasa:'Lakaw sa uma pa-zigzag. Tan-awa ang 20 ka tanom. Tan-awa ang <b>ibabaw ug ilalom sa dahon</b>, bulak ug gagmay nga bunga. Pangitaa: orange nga insekto, kuto sa ilalom sa dahon, buslot sa bunga.',
-  broccoli:'Lakaw sa uma pa-zigzag. Tan-awa ang 20 ka tanom. Tan-awa ang <b>ilalom sa dahon</b> ug ang <b>tumoy/tunga</b> sa tanom. Pangitaa: gagmay nga berde nga ulod, buslot nga murag bintana.',
-  cabbage:'Lakaw sa uma pa-zigzag. Tan-awa ang 20 ka tanom. Tan-awa ang <b>ilalom sa dahon</b> ug ang <b>tumoy/tunga</b> sa tanom. Pangitaa: gagmay nga berde nga ulod, buslot nga murag bintana.',
+  eggplant:'Lakaw sa uma pa-zigzag. Tan-awa ang <b>tumoy sa sanga</b> (nalaya = fruit & shoot borer), <b>ilalom sa dahon</b> (leafhopper, mites, whitefly) ug ang <b>bunga</b> kung naay buslot.',
+  cucumber:'Lakaw sa uma pa-zigzag. Tan-awa ang <b>ilalom sa dahon</b> (kuto, thrips, whitefly), ang dahon kung naay <b>dalag nga kuwadrado nga spots</b> (downy mildew), ug ang <b>gagmay nga bunga</b> (tusok sa fruit fly).',
+  chinese_cabbage:'Lakaw sa uma pa-zigzag. Tan-awa ang <b>ilalom sa dahon</b> ug ang <b>tunga/ulo</b>. Pangitaa: gagmay nga berde nga ulod, gagmay nga buslot (flea beetle), humok nga dunot.',
+  carrot:'Lakaw sa uma pa-zigzag. Tan-awa ang <b>dahon</b> kung naay itom-brown nga spots o ulod, ug ang punoan kung naay pinutol (cutworm).',
+  sweet_corn:'Lakaw sa uma pa-zigzag. Tan-awa ang <b>dahon ug sulod sa whorl</b> (tunga sa tanom) kung naay <b>buslot, gisi-gisi nga dahon</b>, o hugaw sa ulod nga murag gabas.',
+  kalabasa:'Lakaw sa uma pa-zigzag. Tan-awa ang <b>ibabaw ug ilalom sa dahon</b>, bulak ug gagmay nga bunga. Pangitaa: orange nga insekto, kuto sa ilalom sa dahon, buslot sa bunga.',
+  broccoli:'Lakaw sa uma pa-zigzag. Tan-awa ang <b>ilalom sa dahon</b> ug ang <b>tumoy/tunga</b> sa tanom. Pangitaa: gagmay nga berde nga ulod, buslot nga murag bintana.',
+  cabbage:'Lakaw sa uma pa-zigzag. Tan-awa ang <b>ilalom sa dahon</b> ug ang <b>tumoy/tunga</b> sa tanom. Pangitaa: gagmay nga berde nga ulod, buslot nga murag bintana.',
   green_onion:'Lakaw sa uma pa-zigzag. Ablihi ang pipila ka dahon. Pangitaa: <b>ulod sa sulod sa dahon</b>, puti o silver nga linya sa dahon, spots sa dahon.',
-  tomato:'Lakaw sa uma pa-zigzag. Tan-awa ang 20 ka tanom. <b>Uyoga ang tanom</b> — kon naay gagmay nga puti nga molupad, whitefly kana. Pangitaa: buslot sa bunga, nagkulot nga dahon.',
-  other:'Lakaw sa uma pa-zigzag. Tan-awa ang 20 ka tanom sa lain-laing dapit. Tan-awa ang dahon (ibabaw ug ilalom), punoan ug bunga kung naay ulod, insekto, buslot o spots.'
+  tomato:'Lakaw sa uma pa-zigzag. <b>Uyoga ang tanom</b> — kon naay gagmay nga puti nga molupad, whitefly kana. Pangitaa: buslot sa bunga, nagkulot nga dahon.',
+  other:'Lakaw sa uma pa-zigzag. Tan-awa ang dahon (ibabaw ug ilalom), punoan ug bunga kung naay ulod, insekto, buslot o spots.'
 };
 const PESTS = {
   sweet_corn:['Fall armyworm (ulod sa whorl)','Corn borer (ulod sa punoan)','Corn earworm (ulod sa dalumpit)','Aphids (kuto)'],
@@ -626,14 +734,145 @@ const PESTS = {
   cabbage:['Diamondback moth (gamay nga berde nga ulod)','Webworm (ulod sa tumoy)','Cutworm (mopamutol sa punoan)','Aphids (kuto)'],
   green_onion:['Armyworm (ulod sa sulod sa dahon)','Thrips (puti nga linya sa dahon)','Leafminer (agianan sa dahon)'],
   tomato:['Fruitworm (ulod sa bunga)','Whitefly (puti nga molupad)','Aphids (kuto)','Leafminer (agianan sa dahon)'],
+  eggplant:['Fruit & shoot borer (ulod sa tumoy/bunga)','Leafhopper (gagmay nga berde nga molukso)','Mites (gagmay kaayo, sa ilalom sa dahon)','Thrips','Whitefly (puti nga molupad)','Aphids (kuto)'],
+  cucumber:['Squash beetle (orange nga insekto)','Fruit fly (langaw sa bunga)','Aphids (kuto)','Thrips','Whitefly (puti nga molupad)','Melon worm (ulod sa dahon/bunga)','Leafminer (agianan sa dahon)'],
+  chinese_cabbage:['Diamondback moth (gamay nga berde nga ulod)','Flea beetle (gagmay nga itom nga molukso)','Cutworm (mopamutol sa punoan)','Aphids (kuto)','Armyworm'],
+  carrot:['Cutworm (mopamutol sa punoan)','Armyworm','Aphids (kuto)','Leafminer (agianan sa dahon)'],
   other:['Ulod','Kuto (aphids)','Insekto']
 };
+PESTS.pechay = PESTS.chinese_cabbage; PESTS.ampalaya = PESTS.cucumber;
 const SAFETY = ['Sul-oba ang <b>gwantes, mask, taas nga bisti, botas</b> ug panalipod sa mata.',
   'Basaha ug sunda ang <b>label</b> sa produkto. Ayaw usba ang dosage.',
   'Ayaw pag-spray kon <b>kusog ang hangin</b> o hapit na mo-ulan. Ayaw pag-spray atubangan sa hangin.',
   'Ayaw pagkaon, pag-inom o pagpanigarilyo samtang nag-spray.',
   'Ilayo sa <b>bata, hayop, tubig nga ilimnon</b> ug sapa.',
   'Human: <b>maligo ug ilisan ang bisti</b>. Hugasi ang sprayer. Ang walay sulod nga sudlanan, i-triple rinse ug ayaw gamita sa pagkaon.'];
+
+/* =========================================================
+   ⚠️ KRITIKAL NGA STAGE ug 🍂 SAKIT sa matag crop
+   Day = gikan sa pagtanom (direct) o transplant. 'H' = adlaw sa harvest.
+   Kinatibuk-ang giya ra — pangutana sa technician / DA para sa inyong lugar.
+   ========================================================= */
+const DISEASES = {
+  sweet_corn:[['Downy mildew','Dalag-puti nga linya sa dahon; puti nga "pulbos" sa ilalom sa dahon sa buntag; mubo ug kapuy ang tanom'],
+    ['Leaf blight','Taas nga brown nga spots (murag barko) sa dahon'],['Rust (taya)','Gagmay nga orange-brown nga "pulbos" sa dahon'],
+    ['Banded leaf & sheath blight','Brown nga banda/marka sa punoan ug sheath — sa basa nga panahon'],['Ear rot / stalk rot','Dunot sa dalumpit o punoan; puti o pink nga agup-op']],
+  kalabasa:[['Powdery mildew','Puti nga pulbos sa ibabaw sa dahon'],['Downy mildew','Dalag nga kuwadrado nga spots sa dahon; abuhon sa ilalom'],
+    ['Mosaic virus','Dalag-berde nga sumbanan sa dahon; nagkulot ug gagmay'],['Fruit rot','Dunot sa bunga nga nagtupad sa yuta'],['Damping off','Seedling nga natumba sa punoan']],
+  broccoli:[['Black rot','Dalag nga porma-V sa kilid sa dahon; itom nga ugat sa dahon'],['Alternaria leaf spot','Brown nga lingin nga spots nga naay singsing'],
+    ['Soft rot','Humok ug baho nga dunot sa ulo o punoan'],['Clubroot','Malaya sa udto; ang gamot nanghupong'],['Downy mildew','Dalag nga spots sa ibabaw; abuhon nga agup-op sa ilalom'],['Damping off','Seedling nga natumba sa punoan']],
+  green_onion:[['Purple blotch','Purple nga spots nga naay dalag nga ngilit'],['Anthracnose / twister','Nagkulot ug nagtuyok nga dahon; gagmay nga itom nga spots'],
+    ['Basal rot','Dunot sa punoan; nadalag ug nalaya'],['Damping off','Seedling nga natumba']],
+  tomato:[['Early blight','Brown nga spots nga naay singsing sa daan nga dahon'],['Late blight','Dagkong itom-brown nga spots; puti nga agup-op — bugnaw ug basa'],
+    ['Bacterial wilt','Kalit nga malaya bisan basa ang yuta'],['Leaf curl virus','Nagkulot, dalag ug gagmay nga dahon sa tumoy'],['Blossom-end rot','Itom nga dunot sa ilalom sa bunga'],['Damping off','Seedling nga natumba']],
+  eggplant:[['Bacterial wilt','Kalit nga malaya bisan basa ang yuta'],['Phomopsis blight','Brown nga spots sa dahon; dunot sa bunga'],
+    ['Little leaf','Gagmay kaayo nga dahon, daghang sanga, walay bunga'],['Damping off','Seedling nga natumba sa punoan']],
+  cucumber:[['Downy mildew','Dalag nga kuwadrado nga spots taliwala sa ugat; abuhon sa ilalom'],['Powdery mildew','Puti nga pulbos sa dahon'],
+    ['Mosaic virus','Dalag-berde nga sumbanan; nagkulot nga dahon'],['Anthracnose','Brown nga lingin nga spots; mobuslot ang dahon'],['Fruit rot','Dunot sa bunga'],['Damping off','Seedling nga natumba']],
+  carrot:[['Leaf blight (Alternaria)','Itom-brown nga spots sa dahon; nauga ang ngilit'],['Cercospora leaf spot','Gagmay nga brown spots nga naay dalag nga ngilit'],
+    ['Soft rot','Humok nga dunot sa ugat — basa nga yuta'],['Nematode (root knot)','Ang ugat nag-buko-buko o nagsanga'],['Damping off','Seedling nga natumba']],
+  other:[['Leaf spot','Spots sa dahon'],['Dunot','Dunot sa punoan, ugat o bunga'],['Malaya','Kalit nga malaya']]
+};
+DISEASES.cabbage = DISEASES.broccoli; DISEASES.chinese_cabbage = DISEASES.broccoli; DISEASES.pechay = DISEASES.broccoli; DISEASES.ampalaya = DISEASES.cucumber;
+
+const CRIT = {
+  sweet_corn:[
+    {from:0, to:14, name:'Pagtubo / seedling', pests:['Cutworm','Fall armyworm'], dis:['Downy mildew','Damping off'],
+     focus:'Tan-awa ang pinutol nga punoan (cutworm) ug ang dalag-puti nga linya sa dahon (downy mildew). Ang tanom nga naay downy mildew: ibot ug ilayo dayon.'},
+    {from:15, to:40, name:'Whorl stage', pests:['Fall armyworm','Corn borer'], dis:['Downy mildew','Leaf blight','Banded leaf & sheath blight'],
+     focus:'KRITIKAL sa fall armyworm: tan-awa ang sulod sa whorl kada buntag. Sa basa nga panahon tan-awa ang punoan ug sheath.'},
+    {from:45, to:60, name:'Tasseling / Silking', pests:['Corn earworm','Corn borer','Aphids'], dis:['Rust (taya)','Leaf blight'],
+     focus:'PINAKA-KRITIKAL sa ani: dili kulangon sa tubig. Tan-awa ang tassel ug silk kung naay ulod o kuto.'},
+    {from:61, to:'H', name:'Pagpuno sa dalumpit', pests:['Corn earworm'], dis:['Ear rot / stalk rot'],
+     focus:'Tan-awa ang tumoy sa dalumpit ug punoan kung naay dunot o ulod. Ayaw tugoti nga malunang.'}],
+  kalabasa:[
+    {from:0, to:21, name:'Seedling', pests:['Squash beetle','Cutworm'], dis:['Damping off'],
+     focus:'Ang squash beetle mokaon sa batan-on nga dahon — tan-awa sa buntag.'},
+    {from:22, to:45, name:'Pagkamang sa balagon', pests:['Aphids','Whitefly','Squash beetle'], dis:['Downy mildew','Powdery mildew','Mosaic virus'],
+     focus:'Tan-awa ang ilalom sa dahon (kuto, whitefly) ug kung naay puti nga pulbos o dalag nga spots. Ibot ang tanom nga naay mosaic virus.'},
+    {from:46, to:70, name:'Pagpamulak ug pagbunga', pests:['Fruit fly'], dis:['Powdery mildew','Downy mildew','Fruit rot'],
+     focus:'KRITIKAL: tan-awa ang gagmay nga bunga kung naay tusok sa fruit fly. Butangi og trap.'},
+    {from:71, to:'H', name:'Pagdako sa bunga', pests:['Fruit fly'], dis:['Fruit rot'],
+     focus:'Butangi og uhot ang ilalom sa bunga; tan-awa ang dunot.'}],
+  broccoli:[
+    {from:0, to:14, name:'Human sa transplant', pests:['Cutworm','Diamondback moth','Flea beetle'], dis:['Damping off','Black rot'],
+     focus:'Tan-awa ang pinutol nga punoan ug gagmay nga buslot sa dahon.'},
+    {from:15, to:40, name:'Vegetative', pests:['Diamondback moth','Webworm','Aphids'], dis:['Black rot','Alternaria leaf spot','Clubroot'],
+     focus:'KRITIKAL sa DBM ug webworm sa tumoy. Tan-awa ang dalag nga porma-V sa kilid sa dahon (black rot).'},
+    {from:41, to:'H', name:'Pagporma sa ulo', pests:['Webworm','Armyworm','Aphids'], dis:['Soft rot','Downy mildew','Alternaria leaf spot'],
+     focus:'KRITIKAL: ayaw tugoti nga naay ulod sa ulo. Sa basa nga panahon tan-awa ang humok nga dunot (soft rot).'}],
+  chinese_cabbage:[
+    {from:0, to:14, name:'Human sa transplant', pests:['Cutworm','Flea beetle','Diamondback moth'], dis:['Damping off','Black rot'],
+     focus:'Tan-awa ang pinutol nga punoan ug gagmay nga buslot sa dahon (flea beetle).'},
+    {from:15, to:30, name:'Vegetative', pests:['Diamondback moth','Aphids','Webworm'], dis:['Black rot','Alternaria leaf spot','Downy mildew'],
+     focus:'KRITIKAL sa DBM. Tan-awa ang ilalom sa dahon ug ang tumoy.'},
+    {from:31, to:'H', name:'Pagporma sa ulo', pests:['Armyworm','Aphids'], dis:['Soft rot','Downy mildew'],
+     focus:'KRITIKAL sa soft rot sa basa nga panahon — humok ug baho nga dunot sa ulo. Ayaw tugoti nga malunang.'}],
+  green_onion:[
+    {from:0, to:20, name:'Bag-o natanom', pests:['Cutworm'], dis:['Damping off','Basal rot'],
+     focus:'Tan-awa ang natumba o nadalag nga tanom; ayaw tugoti nga malunang.'},
+    {from:21, to:'H', name:'Pagdako', pests:['Armyworm','Thrips','Leafminer'], dis:['Purple blotch','Anthracnose / twister'],
+     focus:'KRITIKAL sa armyworm (ablihi ang dahon) ug purple blotch sa basa nga panahon.'}],
+  tomato:[
+    {from:0, to:21, name:'Human sa transplant', pests:['Cutworm','Whitefly'], dis:['Damping off','Leaf curl virus','Bacterial wilt'],
+     focus:'KRITIKAL sa whitefly — kon sayo ma-virus, dako ang kawala. Ibot ang tanom nga nagkulot ang dahon.'},
+    {from:22, to:45, name:'Vegetative / pagpamulak', pests:['Whitefly','Leafminer','Aphids'], dis:['Early blight','Bacterial wilt','Late blight'],
+     focus:'Tan-awa ang daan nga dahon (early blight) ug ang kalit nga malaya (bacterial wilt).'},
+    {from:46, to:'H', name:'Pagbunga', pests:['Fruitworm'], dis:['Late blight','Blossom-end rot','Early blight'],
+     focus:'KRITIKAL sa fruitworm sa bunga ug late blight kon bugnaw ug basa.'}],
+  eggplant:[
+    {from:0, to:21, name:'Human sa transplant', pests:['Cutworm','Leafhopper','Aphids'], dis:['Damping off','Bacterial wilt'],
+     focus:'Tan-awa ang pinutol nga punoan ug ang kalit nga malaya.'},
+    {from:22, to:45, name:'Vegetative', pests:['Leafhopper','Mites','Thrips','Whitefly'], dis:['Bacterial wilt','Phomopsis blight','Little leaf'],
+     focus:'Tan-awa ang ilalom sa dahon; ang dahon nga nadalag ang ngilit = leafhopper. Ibot ang tanom nga "little leaf".'},
+    {from:46, to:'H', name:'Pagpamulak ug pagbunga', pests:['Fruit & shoot borer','Mites'], dis:['Phomopsis blight','Bacterial wilt'],
+     focus:'PINAKA-KRITIKAL: fruit & shoot borer — tan-awa ang nalaya nga tumoy ug buslot sa bunga. Putla ug ilubong ang apektado.'}],
+  cucumber:[
+    {from:0, to:14, name:'Seedling', pests:['Squash beetle','Cutworm'], dis:['Damping off'],
+     focus:'Tan-awa ang batan-on nga dahon sa buntag (squash beetle).'},
+    {from:15, to:30, name:'Pagkamang (vine)', pests:['Aphids','Thrips','Whitefly','Leafminer'], dis:['Downy mildew','Mosaic virus','Powdery mildew'],
+     focus:'KRITIKAL sa downy mildew sa basa nga panahon — tan-awa ang dalag nga kuwadrado nga spots.'},
+    {from:31, to:'H', name:'Pagpamulak ug pagbunga', pests:['Fruit fly','Melon worm'], dis:['Downy mildew','Anthracnose','Fruit rot'],
+     focus:'Tan-awa ang bunga (tusok sa fruit fly) ug dahon. Ani kada 1–2 ka adlaw.'}],
+  carrot:[
+    {from:0, to:21, name:'Pagtubo', pests:['Cutworm'], dis:['Damping off'],
+     focus:'KRITIKAL: dili mauga ang yuta samtang nagtubo (bisbisi gamay kada adlaw).'},
+    {from:22, to:60, name:'Pagporma sa ugat', pests:['Armyworm','Aphids','Leafminer'], dis:['Leaf blight (Alternaria)','Cercospora leaf spot','Nematode (root knot)'],
+     focus:'Tan-awa ang dahon kung naay itom-brown nga spots. Gabuta ang sagbot.'},
+    {from:61, to:'H', name:'Pagdako sa ugat', pests:['Armyworm'], dis:['Soft rot','Leaf blight (Alternaria)'],
+     focus:'Ayaw tugoti nga malunang (soft rot). Tabuni og yuta ang ibabaw sa carrot aron dili mo-berde.'}]
+};
+CRIT.cabbage = CRIT.broccoli; CRIT.pechay = CRIT.chinese_cabbage; CRIT.ampalaya = CRIT.cucumber;
+
+const critTo = (p, c) => c.to === 'H' ? (Number(p.days) || 75) : c.to;
+function critNow(p, dap){ return (CRIT[p.crop] || []).find(c => dap >= c.from && dap <= critTo(p, c)) || null; }
+function critNext(p, dap, within){ return (CRIT[p.crop] || []).find(c => c.from > dap && c.from - dap <= within) || null; }
+const disHint = (cropKey, name) => ((DISEASES[cropKey] || DISEASES.other).find(d => d[0] === name) || [])[1] || '';
+/* Ulan → taas nga risgo sa sakit (gikan sa weather kon naay location) */
+function rainRisk(){
+  const c = wxCache(); if (!c || !c.days) return null;
+  const i = c.days.indexOf(today()); if (i < 1) return null;
+  const mm = (c.rain[i - 1] || 0) + (c.rain[i] || 0), prob = c.prob ? c.prob[i] : null;
+  return mm >= 10 || (prob != null && prob >= 80) ? {mm, prob} : null;
+}
+function critBox(p, dap, forWorker){
+  const c = critNow(p, dap), nx = critNext(p, dap, 3), rr = rainRisk();
+  if (!c && !nx && !rr) return '';
+  return `${c ? `<div class="crit-box"><b>⚠️ KRITIKAL NGA STAGE: ${esc(c.name)}</b> <span class="small">(Day ${c.from}–${critTo(p, c)})</span>
+      <div style="margin-top:4px">🐛 Bantayi: <b>${c.pests.map(esc).join(', ')}</b></div>
+      <div>🍂 Sakit: <b>${c.dis.map(esc).join(', ')}</b></div>
+      <div class="small" style="margin-top:4px">${esc(c.focus)}</div>
+      ${forWorker ? `<details class="small" style="margin-top:6px"><summary>Unsaon pag-ila sa sakit?</summary><ul>${c.dis.map(d => `<li><b>${esc(d)}</b>: ${esc(disHint(p.crop, d))}</li>`).join('')}</ul></details>` : ''}</div>` : ''}
+    ${nx ? `<div class="small crit-next">⏳ Sa ${nx.from - dap} ka adlaw: kritikal nga stage — <b>${esc(nx.name)}</b> (${nx.pests.concat(nx.dis).slice(0, 4).map(esc).join(', ')})</div>` : ''}
+    ${rr && c && c.dis.length ? `<div class="crit-rain">🌧️ <b>Naulan (${fmtN(rr.mm, 0)} mm)</b> — taas ang risgo sa sakit. Tan-awa pag-ayo ang dahon, punoan ug bunga.</div>` : ''}`;
+}
+function critTableHtml(p, dap){
+  const list = CRIT[p.crop] || []; if (!list.length) return '';
+  return `<h3>⚠️ Mga kritikal nga stage</h3><div class="card">${list.map(c => { const on = dap >= c.from && dap <= critTo(p, c), past = dap > critTo(p, c);
+    return `<div class="rowi" style="cursor:default;${on ? 'background:#fff1c2;border-radius:10px;padding-left:8px' : past ? 'opacity:.55' : ''}"><span class="ic">${on ? '⚠️' : past ? '✔️' : '⏳'}</span>
+      <div class="grow"><b>${esc(c.name)}</b> <span class="small muted">Day ${c.from}–${critTo(p, c)} · ${fmtD(addDays(p.datePlanted, c.from)).replace(/, \d{4}$/, '')}–${fmtD(addDays(p.datePlanted, critTo(p, c))).replace(/, \d{4}$/, '')}</span>
+      <div class="small">🐛 ${c.pests.map(esc).join(', ')}<br>🍂 ${c.dis.map(esc).join(', ')}</div></div></div>`; }).join('')}</div>`;
+}
 
 /* ---------- Task engine ---------- */
 const DONE_REASONS = ['NAULAN', 'BASA PA ANG YUTA'];             // patubig: na-check, dili kinahanglan
@@ -683,8 +922,20 @@ function workItems(opts = {}){
     if (wNext < p.datePlanted) wNext = p.datePlanted;
     if (!wToday && wNext <= t) items.push(Object.assign({}, base, {kind:'water', key:taskKey(p.id,'water',t), due:t, label:'PATUBIG', status:'todo', since:wNext < t ? wNext : null}));
     else if (wNext > t && wNext <= horizon) items.push(Object.assign({}, base, {kind:'water', key:taskKey(p.id,'water',wNext), due:wNext, label:'PATUBIG (check)', status:'next'}));
-    // 3) Pest check (recurring; dili mo-doble sa template pest task)
-    if (dap >= 7) {
+    // 3) Pest check — buntag ug hapon (default) o kada pila ka adlaw
+    if (dap >= 7 && (o.pestMode || 'ampm') === 'ampm') {
+      const hr = new Date().getHours();
+      const tplPestToday = items.some(x => x.p === p && x.kind === 'pest' && x.key.includes(':t:') && (x.status === 'todo' || x.status === 'wait'));
+      for (const ses of ['am', 'pm']) {
+        const key = taskKey(p.id, 'pest', t + ':' + ses), rec = recByKey(key);
+        const b2 = Object.assign({}, base, {kind:'pest', key, session:ses, due:t, label:'CHECK SA PESTE — ' + sessLabel(ses)});
+        if (rec) items.push(Object.assign(b2, {status:recStatus(rec) || 'done', rec}));
+        else if (ses === 'am' && tplPestToday) continue;
+        else items.push(Object.assign(b2, {status: ses === 'pm' && hr < 12 ? 'next' : 'todo'}));
+      }
+      const tm = addDays(t, 1);
+      items.push(Object.assign({}, base, {kind:'pest', key:taskKey(p.id, 'pest', tm + ':am'), session:'am', due:tm, label:'CHECK SA PESTE — ' + sessLabel('am'), status:'next'}));
+    } else if (dap >= 7) {
       const pr = db.activities.filter(a => a.plantingId === p.id && a.category === 'pest_monitoring').sort((a,b) => (a.date + (a.doneAt||'')).localeCompare(b.date + (b.doneAt||'')));
       const pLast = pr[pr.length - 1];
       let pNext = pLast ? addDays(pLast.date, pLast.outcome === 'help' ? 1 : pestEvery(p, dap, o)) : t;
@@ -784,16 +1035,16 @@ function wkUndo(key){
 }
 
 /* ---------- Pest check flow ---------- */
-let pestDraft = null;
 function wkPestNone(key){
   const x = findItem(key); if (!x) return;
-  recordItem(x, 'done', {severity:'None', pest:'', pestFound:false, action:'Walay peste — walay spray'});
+  const n = pestSamplesN(x.p);
+  recordItem(x, 'done', {severity:'None', pest:'', pestFound:false, session:x.session || null, sampleN:n, samples:[], infested:0, incidence:0, diseaseFound:false, disInc:0, stage:cropStage(x.p, x.dap), action:'Walay mananap o sakit — walay spray'});
   toast('✅ Walay peste — na-record. Dili kinahanglan mag-spray.');
   render();
 }
 function wkPestHelp(key){
   const x = findItem(key); if (!x) return;
-  recordItem(x, 'help', {severity:'Help', help:true, notes:'Nangayo og tabang'});
+  recordItem(x, 'help', {severity:'Help', help:true, session:x.session || null, notes:'Nangayo og tabang'});
   render();
   const f = farmSet();
   modal('🆘 KINAHANGLANG TABANG', `<div class="wk-help">
@@ -803,49 +1054,220 @@ function wkPestHelp(key){
       <a class="bigbtn ghost" href="sms:${esc(f.phone)}?body=${encodeURIComponent('Tabang sa uma: ' + pName(x.p) + ' — naay problema sa peste.')}">💬 TEXT</a>` : '<p class="small muted">(Wala pa gi-set sa admin ang numero sa manager.)</p>'}
     <button class="bigbtn ghost" onclick="closeModal()">OK</button></div>`);
 }
+
+/* =========================================================
+   🐛 PEST MONITORING — buntag ug hapon, sample plants, litrato
+   ========================================================= */
+const sessLabel = s => s === 'am' ? '🌅 BUNTAG' : s === 'pm' ? '🌇 HAPON' : '';
+const sevOfIncidence = pct => pct <= 0 ? 'None' : pct < 10 ? 'Low' : pct < 30 ? 'Medium' : 'High';
+const SEV_WORD = {None:'Walay', Low:'Gamay', Medium:'Medyo daghan', High:'Daghan', Help:'Tabang'};
+const COUNT_OPTS = [['1-2', '1–2'], ['3-5', '3–5'], ['6-10', '6–10'], ['10+', 'Labaw 10']];
+
+/* Stage sa tanom base sa DAP */
+function cropStage(p, dap){
+  const D = Number(p.days) || 75;
+  if (dap < 0) return 'Wala pa natanom';
+  if (p.crop === 'sweet_corn') {
+    if (dap <= 10) return 'Pagtubo (emergence)';
+    if (dap <= 30) return 'Batan-on (early whorl)';
+    if (dap <= 49) return 'Dako na (late whorl)';
+    if (dap <= 60) return 'Tasseling / Silking';
+    if (dap < D) return 'Pagpuno sa dalumpit';
+    return 'Harvest';
+  }
+  const f = dap / D;
+  if (f < 0.15) return 'Seedling / bata pa';
+  if (f < 0.45) return 'Vegetative (nagdako ang dahon)';
+  if (f < 0.65) return ['broccoli', 'cabbage'].includes(p.crop) ? 'Pagporma sa ulo' : p.crop === 'green_onion' ? 'Pagdako' : 'Pagpamulak';
+  if (f < 1) return ['broccoli', 'cabbage'].includes(p.crop) ? 'Pagdako sa ulo' : p.crop === 'green_onion' ? 'Hapit na ma-harvest' : 'Pagbunga';
+  return 'Harvest';
+}
+
+/* ---------- Sample flow (trabahante) ---------- */
+let pestSess = null;
+function pestSamplesN(p){ return Math.max(1, Math.min(30, +getTpl(p.crop).opts.samples || 10)); }
 function wkPestFound(key){
   const x = findItem(key); if (!x) return;
-  pestDraft = {key, pest:'', sev:'', photo:null};
-  const list = [...(PESTS[x.p.crop] || PESTS.other), 'Sakit sa dahon (spots / lata)', 'Wala ko kaila'];
-  modal('🐛 NAAY PESTE', `
-    <h3>1. Unsa nga peste?</h3>
-    <div class="wk-choices" id="pc_pest">${list.map(n => `<button class="choice" onclick="pestPick('pest',this,'${esc(n).replace(/'/g, '&#39;')}')">${esc(n)}</button>`).join('')}</div>
-    <h3>2. Pila ka tanom ang naay peste? (sa 10 ka tanom)</h3>
-    <div class="wk-choices" id="pc_sev">
-      <button class="choice" onclick="pestPick('sev',this,'Low')">🙂 Gamay ra (1–2 sa 10)</button>
-      <button class="choice" onclick="pestPick('sev',this,'Medium')">😐 Medyo daghan (3–5 sa 10)</button>
-      <button class="choice" onclick="pestPick('sev',this,'High')">😟 Daghan kaayo (labaw 5 sa 10)</button></div>
-    <h3>3. Litrato (kon mahimo)</h3>
-    <label class="bigbtn ghost" style="display:block;text-align:center">📷 KUHAA OG LITRATO
-      <input type="file" accept="image/*" capture="environment" style="display:none" onchange="pestPhoto(this)"></label>
-    <div id="pc_photo" class="small muted"></div>
-    <button class="bigbtn" style="margin-top:16px" onclick="pestSave()">✅ I-SAVE</button>`);
+  pestSess = {key, n:pestSamplesN(x.p), samples:{}, extra:[], edit:null, draft:null};
+  pestGrid();
 }
-function pestPick(field, el, val){
-  pestDraft[field] = val;
+function pestGrid(){
+  const s = pestSess, x = findItem(s.key); if (!x) return;
+  const inf = Object.keys(s.samples).length, pct = Math.round(inf / s.n * 100);
+  modal(`🐛 ${sessLabel(x.session) || 'CHECK SA PESTE'} — ${esc(pName(x.p))}`, `
+    ${critBox(x.p, x.dap, false)}
+    <p style="font-size:17px;margin-top:0">Pindota ang <b>numero sa tanom nga NAAY MANANAP O SAKIT</b>. Ang wala gipindot = limpyo.</p>
+    <div class="ps-grid">${Array.from({length:s.n}, (_, i) => i + 1).map(n => { const sm = s.samples[n];
+      return `<button class="ps-btn ${sm ? (sm.pest ? 'on' : 'dis') : ''}" onclick="pestSample(${n})">${sm ? (sm.pest ? '🐛' : '') + (sm.dis ? '🍂' : '') : ''}${n}${sm && sm.photos.length ? '<small>📷' + sm.photos.length + '</small>' : ''}</button>`; }).join('')}</div>
+    <div class="ps-sum">${inf ? (() => { const v = Object.values(s.samples), np = v.filter(m => m.pest).length, nd = v.filter(m => m.dis).length;
+      return `${np ? `🐛 <b>${np} sa ${s.n}</b> naay mananap (<b>${Math.round(np / s.n * 100)}%</b>)` : ''}${np && nd ? '<br>' : ''}${nd ? `🍂 <b>${nd} sa ${s.n}</b> naay sakit (<b>${Math.round(nd / s.n * 100)}%</b>)` : ''}`; })() : `✅ Walay tanom nga gimarkahan`}</div>
+    <label class="bigbtn ghost" style="display:block;text-align:center;margin-top:10px">📷 DUGANG LITRATO (kinatibuk-an)${s.extra.length ? ` — ${s.extra.length}` : ''}
+      <input type="file" accept="image/*" capture="environment" style="display:none" onchange="pestPhoto(this,'extra')"></label>
+    <button class="bigbtn" style="margin-top:12px" onclick="pestSaveSession()">✅ I-SAVE ANG REPORT</button>`);
+}
+function pestSample(n){
+  const s = pestSess, x = findItem(s.key); if (!x) return;
+  s.edit = n; s.draft = JSON.parse(JSON.stringify(s.samples[n] || {pest:'', count:'', dis:'', photos:[]}));
+  pestSampleRender(x);
+}
+function pestSampleRender(x){
+  const s = pestSess, d = s.draft;
+  const list = [...(PESTS[x.p.crop] || PESTS.other), 'Sakit sa dahon (spots / lata)', 'Wala ko kaila'];
+  modal(`🌱 Tanom #${s.edit}`, `
+    ${critBox(x.p, x.dap, true)}
+    <h3 style="margin-top:0">1. Picturi ang mananap o sakit 📷</h3>
+    <label class="bigbtn orange" style="display:block;text-align:center">📷 KUHAA OG LITRATO
+      <input type="file" accept="image/*" capture="environment" style="display:none" onchange="pestPhoto(this,'sample')"></label>
+    <div id="ps_thumbs" class="ps-thumbs">${d.photos.map(id => `<img data-phid="${id}">`).join('')}</div>
+    <p class="hint">Duol nga litrato sa mananap o sa damage. Pwede daghan.</p>
+    <h3>2. 🐛 Unsa nga mananap?</h3>
+    <div class="wk-choices">${list.filter(nm => !/^Sakit/.test(nm)).map(nm => `<button class="choice ${d.pest === nm ? 'on' : ''}" onclick="pestSessPick('pest',this,'${esc(nm).replace(/'/g, '&#39;')}')">${esc(nm)}</button>`).join('')}
+      <button class="choice ${d.pest === '' && d._pestTouched ? 'on' : ''}" onclick="pestSessPick('pest',this,'')">Walay mananap (sakit ra)</button></div>
+    <h3>3. Pila ka mananap sa tanom?</h3>
+    <div class="labor-grid">${COUNT_OPTS.map(([k, l]) => `<button class="choice ${d.count === k ? 'on' : ''}" style="text-align:center" onclick="pestSessPick('count',this,'${k}')">${l}</button>`).join('')}</div>
+    <h3>4. 🍂 Naay sakit? (kon naa)</h3>
+    <div class="wk-choices">${(DISEASES[x.p.crop] || DISEASES.other).map(([nm, hint]) => `<button class="choice ${d.dis === nm ? 'on' : ''}" onclick="pestSessPick('dis',this,'${esc(nm).replace(/'/g, '&#39;')}')"><b>${esc(nm)}</b><br><span class="small muted">${esc(hint)}</span></button>`).join('')}
+      <button class="choice ${d.dis === '' && d._disTouched ? 'on' : ''}" onclick="pestSessPick('dis',this,'')">Walay sakit / wala ko kahibalo</button></div>
+    <div class="wk-btns">
+      <button class="bigbtn" onclick="pestSampleOk()">✅ OK</button>
+      ${pestSess.samples[s.edit] ? `<button class="bigbtn ghost" onclick="delete pestSess.samples[pestSess.edit];pestGrid()">🗑 WALAY MANANAP (tangtangon)</button>` : ''}
+      <button class="bigbtn ghost" onclick="pestGrid()">← BALIK</button></div>`);
+  loadThumbs();
+}
+function pestSessPick(field, el, val){
+  pestSess.draft[field] = val; pestSess.draft['_' + field + 'Touched'] = true;
   el.parentElement.querySelectorAll('.choice').forEach(b => b.classList.remove('on'));
   el.classList.add('on');
 }
-async function pestPhoto(input){
+function pestSampleOk(){
+  const d = pestSess.draft;
+  if (!d.pest && !d.dis) { toast('Pilia ang mananap o ang sakit (o "Wala ko kaila")'); return; }
+  if (d.pest && !d.count) { toast('Pilia pila ka mananap'); return; }
+  if (!d.pest) d.count = '';
+  pestSess.samples[pestSess.edit] = d; pestGrid();
+}
+async function pestPhoto(input, where){
   const f = input.files && input.files[0]; if (!f) return;
-  $('#pc_photo').textContent = 'Ginaandam ang litrato…';
+  toast('Ginaandam ang litrato…');
   try {
     const blob = await compressImage(f);
     const id = 'ph_' + uid();
     await photoPut(id, blob);
-    pestDraft.photo = {id};
-    $('#pc_photo').innerHTML = `<img src="${URL.createObjectURL(blob)}" style="max-width:100%;border-radius:10px;margin-top:8px">`;
-  } catch(e) { $('#pc_photo').textContent = 'Dili ma-save ang litrato: ' + e.message; }
+    if (where === 'extra') { pestSess.extra.push(id); pestGrid(); }
+    else { pestSess.draft.photos.push(id); const x = findItem(pestSess.key); pestSampleRender(x); }
+    toast('📷 Na-save ang litrato');
+  } catch(e) { toast('Dili ma-save ang litrato: ' + e.message); }
 }
-function pestSave(){
-  const d = pestDraft, x = d && findItem(d.key); if (!x) return;
-  if (!d.pest) { toast('Pilia una ang peste (o "Wala ko kaila")'); return; }
-  if (!d.sev) { toast('Pilia kung pila ka tanom ang naay peste'); return; }
-  recordItem(x, 'done', {pest:d.pest, severity:d.sev, pestFound:true, photo:d.photo, action:'Gi-report sa manager — naghulat sa instruksyon'});
-  closeModal(); render();
-  modal('✅ Na-record ang peste', `<div class="wk-help"><p style="font-size:18px">Salamat! Makita na sa admin/manager.</p>
-    <p><b>AYAW SA PAG-SPRAY</b> hangtod naay <b>SPRAY ORDER</b> gikan sa manager dinhi sa app.</p>
+function pestSaveSession(){
+  const s = pestSess, x = findItem(s.key); if (!x) return;
+  const nums = Object.keys(s.samples).map(Number).sort((a, b) => a - b);
+  const samples = nums.map(n => Object.assign({n}, s.samples[n]));
+  samples.forEach(sm => { delete sm._pestTouched; delete sm._disTouched; });
+  const pS = samples.filter(sm => sm.pest), dS = samples.filter(sm => sm.dis);
+  const inc = Math.round(pS.length / s.n * 1000) / 10, dinc = Math.round(dS.length / s.n * 1000) / 10;
+  const allPh = [...samples.flatMap(sm => sm.photos), ...s.extra].map(id => ({id}));
+  const names = [...new Set(pS.map(sm => sm.pest))], dnames = [...new Set(dS.map(sm => sm.dis))];
+  if (nums.length && !allPh.length && !confirm('Walay litrato. I-save gihapon? (Mas maayo kon naay litrato para makadesisyon ang manager.)')) return;
+  const sev = sevOfIncidence(Math.max(inc, dinc));
+  recordItem(x, 'done', {session:x.session || null, sampleN:s.n, samples, infested:pS.length, incidence:inc, severity:sev,
+    pestFound:pS.length > 0, pest:names.join(', '), diseaseFound:dS.length > 0, disease:dnames.join(', '), disInc:dinc,
+    stage:cropStage(x.p, x.dap), crit:(critNow(x.p, x.dap) || {}).name || null,
+    photos:allPh, photo:null, action: nums.length ? 'Gi-report sa manager — naghulat sa instruksyon' : 'Walay mananap o sakit'});
+  pestSess = null; closeModal(); render();
+  modal(nums.length ? '✅ Na-record ang peste' : '✅ Walay mananap', `<div class="wk-help">
+    <p style="font-size:18px">${nums.length ? `${pS.length ? `🐛 <b>${pS.length} sa ${s.n}</b> (${inc}%) naay mananap.<br>` : ''}${dS.length ? `🍂 <b>${dS.length} sa ${s.n}</b> (${dinc}%) naay sakit.<br>` : ''}Makita na sa manager ang mga litrato.` : 'Na-record. Walay mananap o sakit sa mga sample nga tanom.'}</p>
+    ${nums.length ? '<p><b>AYAW SA PAG-SPRAY</b> hangtod naay <b>SPRAY ORDER</b> gikan sa manager dinhi sa app.</p>' : ''}
     <button class="bigbtn" onclick="closeModal()">OK</button></div>`);
+}
+
+/* ---------- Photos: blob getter + thumbnails ---------- */
+async function getPhotoBlob(id, path){
+  let blob = await photoGet(id).catch(() => null);
+  if (!blob && path) {
+    const c = cfg(); if (!c.token) return null;
+    const r = await fetch(ghUrl(Object.assign({}, c, {path})) + '?ref=' + encodeURIComponent(c.branch || 'main'), {headers:{Authorization:'Bearer ' + c.token, Accept:'application/vnd.github.raw+json'}});
+    if (r.ok) { blob = await r.blob(); photoPut(id, blob).catch(() => {}); }
+  }
+  return blob;
+}
+const photoPathOf = id => { for (const a of db.activities) { const ph = (a.photos || []).find(p => p.id === id) || (a.photo && a.photo.id === id ? a.photo : null); if (ph) return ph.path || null; } return null; };
+const thumbUrls = {};
+async function loadThumbs(){
+  const imgs = document.querySelectorAll('img[data-phid]:not([src])');
+  for (const im of imgs) {
+    const id = im.dataset.phid;
+    try {
+      if (!thumbUrls[id]) { const b = await getPhotoBlob(id, photoPathOf(id)); if (b) thumbUrls[id] = URL.createObjectURL(b); }
+      if (thumbUrls[id]) im.src = thumbUrls[id]; else im.alt = '📷 (wala pa na-sync)';
+    } catch(e) {}
+  }
+}
+function photoList(a){ return a.photos && a.photos.length ? a.photos : a.photo ? [a.photo] : []; }
+async function showPhoto(actId, idx = 0){
+  const a = db.activities.find(x => x.id === actId); if (!a) return;
+  const list = photoList(a); if (!list.length) return;
+  idx = (idx + list.length) % list.length;
+  const ph = list[idx], p = getP(a.plantingId);
+  const sm = (a.samples || []).find(s => (s.photos || []).includes(ph.id));
+  modal(`📷 ${idx + 1}/${list.length}`, `<div id="ph_box"><p class="muted">Ginakuha ang litrato…</p></div>
+    <p class="small">${p ? esc(pName(p)) + ' · ' : ''}${fmtD(a.date)} ${sessLabel(a.session)}${a.stage ? ' · Stage: ' + esc(a.stage) : ''}${sm ? `<br>🌱 Tanom #${sm.n}: ${sm.pest ? `🐛 <b>${esc(sm.pest)}</b> (${esc(sm.count)} ka mananap)` : ''} ${sm.dis ? `🍂 <b>${esc(sm.dis)}</b>` : ''}` : a.pest ? '<br>' + esc(a.pest) : ''}</p>
+    ${list.length > 1 ? `<div class="btnrow"><button class="btn sm ghost" onclick="showPhoto('${a.id}',${idx - 1})">← Una</button><button class="btn sm ghost" onclick="showPhoto('${a.id}',${idx + 1})">Sunod →</button></div>` : ''}`);
+  try {
+    const blob = await getPhotoBlob(ph.id, ph.path);
+    $('#ph_box').innerHTML = blob ? `<img src="${URL.createObjectURL(blob)}" style="width:100%;border-radius:12px">` : '<p class="muted">Wala makit-an ang litrato (wala pa na-sync gikan sa cellphone nga nagkuha).</p>';
+  } catch(e) { $('#ph_box').innerHTML = `<p class="neg">${esc(e.message)}</p>`; }
+}
+
+/* ---------- 🐛 Pest Report (admin) ---------- */
+function pestReportHtml(p){
+  const t = today(), dap = diffDays(p.datePlanted, t);
+  const recs = db.activities.filter(a => a.plantingId === p.id && a.category === 'pest_monitoring').sort((a, b) => (b.date + (b.doneAt || '')).localeCompare(a.date + (a.doneAt || '')));
+  const since = addDays(t, -13), recent = recs.filter(a => a.date >= since);
+  const cell = a => {
+    if (!a) return '<span class="muted">—</span>';
+    if (a.help) return '🆘';
+    const inc = a.incidence != null ? a.incidence : (a.pestFound ? null : 0);
+    const bad = a.pestFound || a.diseaseFound;
+    const cls = bad ? (a.severity === 'High' ? 'neg' : 'warnc') : 'pos';
+    const txt = !bad ? '✅ 0%' : `${a.pestFound ? `🐛${inc != null ? inc + '%' : esc(SEV_WORD[a.severity] || '')}` : ''}${a.pestFound && a.diseaseFound ? ' ' : ''}${a.diseaseFound ? `🍂${a.disInc}%` : ''}`;
+    return `<span class="${cls}" ${photoList(a).length ? `style="cursor:pointer;text-decoration:underline" onclick="showPhoto('${a.id}')"` : ''}>${txt}${photoList(a).length ? ' 📷' : ''}</span>`;
+  };
+  const days = [];
+  for (let i = 0; i < 14; i++) { const d = addDays(t, -i); const rs = recent.filter(a => a.date === d); if (rs.length || i < 3) days.push([d, rs]); }
+  const table = `<table class="tbl pr-tbl"><tr><td><b>Petsa</b></td><td><b>🌅 Buntag</b></td><td><b>🌇 Hapon</b></td><td><b>Mananap</b></td></tr>
+    ${days.map(([d, rs]) => {
+      const am = rs.find(a => a.session === 'am') || rs.find(a => !a.session), pm = rs.find(a => a.session === 'pm');
+      const names = [...new Set(rs.filter(a => a.pest).flatMap(a => a.pest.split(', ')).concat(rs.filter(a => a.disease).flatMap(a => a.disease.split(', ').map(d => '🍂' + d))))].join(', ');
+      return `<tr><td>${fmtD(d).replace(/, \d{4}$/, '')}<br><span class="small muted">Day ${diffDays(p.datePlanted, d)}</span></td><td>${cell(am)}</td><td>${cell(pm)}</td><td class="small">${esc(names) || ''}</td></tr>`;
+    }).join('')}</table>`;
+  // Unsa nga mananap ang kanunay
+  const agg = {};
+  recent.forEach(a => (a.samples || []).filter(sm => sm.dis).forEach(sm => { const k = '🍂 ' + sm.dis; agg[k] = agg[k] || {n:0, max:0, last:'', checks:new Set()}; agg[k].n++; agg[k].checks.add(a.id); agg[k].last = agg[k].last > a.date ? agg[k].last : a.date; agg[k].max = Math.max(agg[k].max, a.disInc || 0); }));
+  recent.forEach(a => (a.samples || []).filter(sm => sm.pest).forEach(sm => { const k = sm.pest; agg[k] = agg[k] || {n:0, max:0, last:'', checks:new Set()}; agg[k].n++; agg[k].checks.add(a.id); agg[k].last = agg[k].last > a.date ? agg[k].last : a.date; agg[k].max = Math.max(agg[k].max, a.incidence || 0); }));
+  recent.filter(a => a.pestFound && !(a.samples || []).length && a.pest).forEach(a => a.pest.split(', ').forEach(k => { agg[k] = agg[k] || {n:0, max:0, last:'', checks:new Set()}; agg[k].checks.add(a.id); agg[k].last = agg[k].last > a.date ? agg[k].last : a.date; }));
+  const top = Object.entries(agg).sort((a, b) => b[1].checks.size - a[1].checks.size);
+  // Litrato
+  const pics = recent.flatMap(a => photoList(a).map((ph, i) => ({a, ph, i}))).slice(0, 24);
+  // Mga spray nga nagamit na
+  const sprays = db.activities.filter(a => a.plantingId === p.id && a.category === 'pesticide').sort((a, b) => b.date.localeCompare(a.date));
+  const lastAis = sprays.slice(0, 2).map(a => (a.ai || '').trim().toLowerCase()).filter(Boolean);
+  const sameAi = lastAis.length === 2 && lastAis[0] === lastAis[1];
+  const last = recs[0];
+  return `<div class="card"><div class="pc-top"><span class="emoji">${crop(p).emoji}</span><div class="grow"><b>Stage karon: ${esc(cropStage(p, dap))}</b><div class="small muted">Day ${dap} sa ${p.days || '?'} · ${fmtD(t)}</div></div></div>
+      ${last ? `<div class="small" style="margin-top:6px">Katapusang check: ${fmtD(last.date)} ${sessLabel(last.session)} — ${last.pestFound ? `🐛 <b>${esc(last.pest)}</b>${last.incidence != null ? ` (${last.incidence}% sa sample)` : ''} ` : ''}${last.diseaseFound ? `🍂 <b>${esc(last.disease)}</b> (${last.disInc}%)` : ''}${!last.pestFound && !last.diseaseFound ? '✅ walay mananap o sakit' : ''}</div>` : '<div class="small neg" style="margin-top:6px">Wala pay pest check.</div>'}</div>
+    ${critBox(p, dap, false)}
+    ${critTableHtml(p, dap)}
+    <h3>📅 Buntag ug hapon (14 ka adlaw)</h3><div class="card" style="overflow-x:auto">${table}
+      <p class="small muted" style="margin:6px 0 0">% = pila ka sample nga tanom ang naay mananap. Pindota ang 📷 aron makita ang litrato.</p></div>
+    ${top.length ? `<h3>🐛🍂 Mga mananap ug sakit nga nakita</h3><div class="card">${top.map(([k, v2]) => `<div class="rowi" style="cursor:default"><span class="ic">🐛</span><div class="grow"><b>${esc(k)}</b><div class="small muted">${v2.checks.size} ka check · katapusan ${fmtD(v2.last)}${v2.max ? ` · pinakataas ${v2.max}%` : ''}</div></div></div>`).join('')}</div>` : ''}
+    ${pics.length ? `<h3>📷 Mga litrato</h3><div class="ps-gallery">${pics.map(({a, ph, i}) => { const sm = (a.samples || []).find(s => (s.photos || []).includes(ph.id));
+      return `<figure onclick="showPhoto('${a.id}',${i})"><img data-phid="${ph.id}" alt=""><figcaption>${fmtD(a.date).replace(/, \d{4}$/, '')} ${a.session === 'pm' ? '🌇' : a.session === 'am' ? '🌅' : ''}${sm ? '<br>' + esc([sm.pest && sm.pest.split(' (')[0], sm.dis && '🍂' + sm.dis].filter(Boolean).join(' · ')) : ''}</figcaption></figure>`; }).join('')}</div>` : ''}
+    <h3>🧴 Mga spray nga nagamit na</h3>
+    <div class="card">${sprays.length ? sprays.slice(0, 8).map(a => `<div class="rowi" onclick="actForm('${a.id}')"><span class="ic">💧</span><div class="grow"><b>${esc(a.item || 'Spray')}</b>${a.ai ? ` <span class="small">(${esc(a.ai)})</span>` : ''}
+        <div class="small muted">${fmtD(a.date)}${a.target ? ' · ' + esc(a.target) : ''}${a.phi ? ' · PHI ' + a.phi + 'd' : ''}</div></div></div>`).join('') : '<div class="empty">Wala pay spray.</div>'}
+      ${sameAi ? '<div class="alert warn"><div>⚠️ Ang duha ka katapusang spray parehas og active ingredient. Ang pag-ilis-ilis sa active ingredient / mode of action makatabang aron dili mo-resistant ang mananap — pangutana sa technician.</div></div>' : ''}</div>
+    <div class="alert"><div>📋 <b>Para sa desisyon:</b> Gamita kini nga report (stage, % sa sample, litrato) uban sa technician o DA. Ang hilo kinahanglan <b>rehistrado sa FPA</b> para niini nga crop ug peste — sunda ang label (dosage, PHI, REI).</div></div>
+    <div class="btnrow"><button class="btn" onclick="orderForm(null,{plantingId:'${p.id}',target:'${top.length ? esc(top[0][0]).replace(/'/g, '&#39;') : ''}'})">🧴 Himo og Spray Order</button></div>`;
 }
 
 /* ---------- Photos: IndexedDB (sa cellphone) + upload sa GitHub sa sync ---------- */
@@ -868,28 +1290,23 @@ function compressImage(file, max = 1024, q = 0.7){
 }
 async function blobToB64(blob){ const b = new Uint8Array(await blobBuf(blob)); let bin = ''; for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(bin); }
 async function uploadPhotos(c){
-  const pending = db.activities.filter(a => a.photo && a.photo.id && !a.photo.path);
-  for (const a of pending) {
-    const blob = await photoGet(a.photo.id); if (!blob) continue;
-    const path = `photos/${a.photo.id}.jpg`;
+  let changed = false;
+  const up = async ph => {
+    const blob = await photoGet(ph.id); if (!blob) return null;
+    const path = `photos/${ph.id}.jpg`;
     const r = await fetch(ghUrl(Object.assign({}, c, {path})), {method:'PUT', headers:{Authorization:'Bearer ' + c.token, Accept:'application/vnd.github+json', 'Content-Type':'application/json'},
       body:JSON.stringify({message:'Farm Tracker photo', content:await blobToB64(blob), branch:c.branch || 'main'})});
-    if (r.ok || r.status === 422) { a.photo = Object.assign({}, a.photo, {path}); a.updatedAt = nowISO(); }
-  }
-  if (pending.length) persist();
-}
-async function showPhoto(actId){
-  const a = db.activities.find(x => x.id === actId); if (!a || !a.photo) return;
-  modal('📷 Litrato', '<p class="muted">Ginakuha ang litrato…</p>');
-  try {
-    let blob = await photoGet(a.photo.id);
-    if (!blob && a.photo.path) {
-      const c = cfg();
-      const r = await fetch(ghUrl(Object.assign({}, c, {path:a.photo.path})) + '?ref=' + encodeURIComponent(c.branch || 'main'), {headers:{Authorization:'Bearer ' + c.token, Accept:'application/vnd.github.raw+json'}});
-      if (r.ok) { blob = await r.blob(); photoPut(a.photo.id, blob).catch(() => {}); }
+    return r.ok || r.status === 422 ? path : null;
+  };
+  for (const a of db.activities) {
+    if (a.photo && a.photo.id && !a.photo.path) { const path = await up(a.photo); if (path) { a.photo = Object.assign({}, a.photo, {path}); a.updatedAt = nowISO(); changed = true; } }
+    if (Array.isArray(a.photos) && a.photos.some(ph => ph.id && !ph.path)) {
+      const out = [];
+      for (const ph of a.photos) { if (ph.path) { out.push(ph); continue; } const path = await up(ph); out.push(path ? Object.assign({}, ph, {path}) : ph); if (path) changed = true; }
+      a.photos = out; a.updatedAt = nowISO();
     }
-    $('#m_body').innerHTML = blob ? `<img src="${URL.createObjectURL(blob)}" style="width:100%;border-radius:12px">` : '<p class="muted">Wala makit-an ang litrato (wala pa na-sync gikan sa cellphone nga nagkuha).</p>';
-  } catch(e) { $('#m_body').innerHTML = `<p class="neg">${esc(e.message)}</p>`; }
+  }
+  if (changed) persist();
 }
 
 /* ---------- Ulan / panahon (Open-Meteo, libre, kon naay location) ---------- */
@@ -928,7 +1345,7 @@ const timeStr = iso => iso ? new Date(iso).toLocaleString('en-PH', {month:'short
 
 function wkCard(x){
   const k = KIND_INFO[x.kind] || KIND_INFO.task, c = crop(x.p);
-  const title = x.kind === 'task' ? esc(x.label).toUpperCase() : k.title;
+  const title = x.kind === 'task' ? esc(x.label).toUpperCase() : x.kind === 'pest' && x.session ? `${k.title} — ${sessLabel(x.session)}` : k.title;
   const ctn = ctById(x.p.caretakerId);
   const sub = `${c.emoji} <b>${esc(pName(x.p))}</b>${x.p.location ? ' · ' + esc(x.p.location) : ''}${ctn && !isWorker() ? ' · 👤 ' + esc(ctn.name) : ''}<br>Edad sa tanom: <b>${x.dap >= 0 ? x.dap + ' ka adlaw' : 'wala pa natanom'}</b>${x.off != null ? ` · Schedule: Day ${x.off}` : ''}`;
   let body = '', btns = '';
@@ -943,10 +1360,15 @@ function wkCard(x){
     btns = `<button class="bigbtn" onclick="wkDone('${x.key}')">✅ DONE — NAHUMAN NA</button>
       <button class="bigbtn yellow" onclick="wkSkip('${x.key}')">⏸️ WALA MAHUMAN</button>`;
   } else if (x.kind === 'pest') {
-    body = `${x.key.includes(':t:') ? `<div class="wk-label">${esc(x.label)}</div>` : ''}<p>${x.key.includes(':t:') && x.how ? esc(x.how) : (PEST_HOW[x.p.crop] || PEST_HOW.other)}</p>
-      <p class="small">Human sa pag-check, pindota ang usa:</p>`;
-    btns = `<button class="bigbtn" onclick="wkPestNone('${x.key}')">✅ WALAY PESTE</button>
-      <button class="bigbtn orange" onclick="wkPestFound('${x.key}')">🐛 NAAY PESTE</button>
+    const nS = pestSamplesN(x.p);
+    body = `${x.key.includes(':t:') ? `<div class="wk-label">${esc(x.label)}</div>` : ''}
+      ${x.session ? `<div class="wk-sess">${x.session === 'am' ? '🌅 BUNTAG — sayo pa (6–9 AM)' : '🌇 HAPON — 3–6 PM'} · Stage: <b>${esc(cropStage(x.p, x.dap))}</b></div>` : ''}
+      ${critBox(x.p, x.dap, true)}
+      <p>Tan-awa ang <b>${nS} ka sample nga tanom</b> — parehas nga tanom matag adlaw (markahi og lipak o plastic, numero 1–${nS}). Tan-awa ang <b>mananap UG sakit</b> (spots, agup-op, dunot, malaya).</p>
+      <p>${x.key.includes(':t:') && x.how ? esc(x.how) : (PEST_HOW[x.p.crop] || PEST_HOW.other)}</p>
+      <p class="small"><b>Kon naay mananap: PICTURAN</b> aron makadesisyon ang manager unsa nga hilo.</p>`;
+    btns = `<button class="bigbtn" onclick="wkPestNone('${x.key}')">✅ WALAY MANANAP UG SAKIT</button>
+      <button class="bigbtn orange" onclick="wkPestFound('${x.key}')">🐛🍂 NAAY MANANAP O SAKIT — PICTURAN</button>
       <button class="bigbtn red" onclick="wkPestHelp('${x.key}')">🆘 KINAHANGLANG TABANG</button>`;
   } else if (x.kind === 'spray') {
     const o = x.order;
@@ -1029,12 +1451,12 @@ function viewWork(){
     body = doneRecs.filter(a => { const pp = getP(a.plantingId); return pp && (!myCaretaker() || pp.caretakerId === myCaretaker()) && cropMatch(pp); }).map(a => {
       const p = getP(a.plantingId), k = KIND_INFO[a.taskType] || KIND_INFO.task;
       const ok = a.outcome === 'done' || (a.taskType === 'water' && DONE_REASONS.includes(a.reason));
-      const what = a.taskType === 'pest' ? (a.pestFound ? `🐛 NAAY PESTE: ${esc(a.pest)} (${esc(a.severity)})` : a.help ? '🆘 NANGAYO OG TABANG' : 'Walay peste')
+      const what = a.taskType === 'pest' ? `${sessLabel(a.session)} ` + (a.pestFound ? `🐛 ${esc(a.pest)} (${a.incidence != null ? a.incidence + '%' : esc(a.severity)})` : a.help ? '🆘 NANGAYO OG TABANG' : 'Walay mananap')
         : a.taskType === 'water' ? (a.outcome === 'done' ? 'Napatubigan' : esc(a.reason)) : a.outcome === 'done' ? esc(a.desc) : `${esc(a.desc)} — ${esc(a.reason || '')}`;
       return `<div class="wk-row"><span class="wk-icon sm">${ok ? '🟢' : '🟡'}</span><div class="grow"><b>${k.icon} ${a.taskType === 'task' ? esc(a.desc) : k.title}</b>
         <div class="small">${what}</div>
         <div class="small muted">${p ? crop(p).emoji + ' ' + esc(pName(p)) : ''} · ${timeStr(a.doneAt)}${a.by ? ' · ' + esc(a.by) : ''}</div></div>
-        ${a.photo ? `<button class="btn sm ghost" onclick="showPhoto('${a.id}')">📷</button>` : ''}
+        ${photoList(a).length ? `<button class="btn sm ghost" onclick="showPhoto('${a.id}')">📷${photoList(a).length > 1 ? photoList(a).length : ''}</button>` : ''}
         ${!isWorker() || a.date === t ? `<button class="btn sm ghost" onclick="wkUndo('${esc(a.taskKey)}')">↩︎</button>` : ''}</div>`;
     }).join('') || '<div class="wk-empty">Wala pay nahuman nga trabaho sa miaging 14 ka adlaw.</div>';
   }
@@ -1165,7 +1587,8 @@ function tplRead(){
     t.fert = (t.fert || []).map((l, j) => ({name:v(`tf_name_${i}_${j}`), rate:parseFloat(v(`tf_rate_${i}_${j}`)) || null, unit:v(`tf_unit_${i}_${j}`), src:v(`tf_src_${i}_${j}`), bagPrice:parseFloat(v(`tf_price_${i}_${j}`)) || null}));
     if (g('md')) { const mv = g('md').value.trim(); t.md = mv === '' ? null : parseFloat(mv); t.other = parseFloat(g('other').value) || null; t.otherNote = g('onote').value.trim(); }
   });
-  ['waterYoung','waterOld','pestEvery','pestEarly','pestEarlyUntil','waterCritFrom','waterCritTo'].forEach(k => { const el = document.getElementById('to_' + k); if (el) tplEdit.opts[k] = el.value === '' ? null : parseFloat(el.value); });
+  const pm = document.getElementById('to_pestMode'); if (pm) tplEdit.opts.pestMode = pm.value;
+  ['waterYoung','waterOld','pestEvery','pestEarly','pestEarlyUntil','waterCritFrom','waterCritTo','samples'].forEach(k => { const el = document.getElementById('to_' + k); if (el) tplEdit.opts[k] = el.value === '' ? null : parseFloat(el.value); });
 }
 function tplRender(){
   const e = tplEdit, c = CROPS[e.crop] || CROPS.other;
@@ -1199,6 +1622,8 @@ function tplRender(){
     <h3>💧 Patubig ug 🐛 Pest check</h3>
     <div class="row2">${ni('waterYoung','Check patubig kada _ adlaw (0–14 DAP)')}${ni('waterOld','Check patubig kada _ adlaw (human 14 DAP)')}</div>
     <div class="row2">${ni('waterCritFrom','Kritikal nga stage gikan sa Day (kada adlaw)')}${ni('waterCritTo','hangtod Day')}</div>
+    <div class="row2"><label>Pest check<select id="to_pestMode"><option value="ampm" ${(o.pestMode || 'ampm') === 'ampm' ? 'selected' : ''}>🌅🌇 Buntag ug hapon kada adlaw</option><option value="interval" ${o.pestMode === 'interval' ? 'selected' : ''}>Kada pila ka adlaw (sa ubos)</option></select></label>
+    ${ni('samples','Pila ka sample nga tanom')}</div>
     <div class="row3">${ni('pestEarly','Pest check kada _ adlaw (sayo)')}${ni('pestEarlyUntil','"Sayo" hangtod Day')}${ni('pestEvery','Pest check kada _ adlaw (human)')}</div>
     <h3>📋 Mga trabaho (${e.tasks.length})</h3>${rows}
     <div class="btnrow"><button class="btn sm" onclick="tplRead();const id=uid();tplEdit.tasks.push({id,off:0,cat:'fertilizer',label:'Bag-ong trabaho',how:'',fert:[]});tplEdit.focus=id;tplRender()">+ Dugang trabaho</button>
@@ -1654,7 +2079,9 @@ const YIELD = {
   green_onion:{unit:'kg', per:0.1, mkt:85},  tomato:{unit:'kg', per:2, mkt:80},
   eggplant:{unit:'kg', per:2, mkt:80},       ampalaya:{unit:'kg', per:1.5, mkt:80},
   sitaw:{unit:'kg', per:0.5, mkt:85},        pechay:{unit:'kg', per:0.15, mkt:85},
-  pepper:{unit:'kg', per:0.5, mkt:80},       other:{unit:'kg', per:null, mkt:85}
+  pepper:{unit:'kg', per:0.5, mkt:80},       cucumber:{unit:'kg', per:1.5, mkt:80},
+  chinese_cabbage:{unit:'kg', per:1, mkt:85}, carrot:{unit:'kg', per:0.08, mkt:80},
+  other:{unit:'kg', per:null, mkt:85}
 };
 const UNIT_WORD = {kg:'kg', pcs:'ka buok', head:'ka ulo', bundle:'ka bugkos', sack:'ka sako'};
 const sameUnit = (a, b) => { const n = u => String(u || 'kg').toLowerCase().replace(/^(pc|piece|pieces|buok)$/, 'pcs').replace(/s$/, ''); return n(a) === n(b); };
@@ -1718,7 +2145,9 @@ const SPACING = {
   green_onion:{row:20, pl:15, sph:2, spg:300, tp:1}, tomato:{row:100, pl:50, sph:1, spg:300, tp:1},
   eggplant:{row:100, pl:50, sph:1, spg:230, tp:1}, ampalaya:{row:200, pl:50, sph:2, spg:6},
   sitaw:{row:75, pl:30, sph:2, spg:8},          pechay:{row:20, pl:15, sph:1, spg:500, tp:1},
-  pepper:{row:75, pl:50, sph:1, spg:160, tp:1},  other:{row:50, pl:30, sph:1, spg:null}
+  pepper:{row:75, pl:50, sph:1, spg:160, tp:1},  cucumber:{row:100, pl:30, sph:2, spg:35},
+  chinese_cabbage:{row:50, pl:30, sph:1, spg:300, tp:1}, carrot:{row:20, pl:5, sph:1, spg:800},
+  other:{row:50, pl:30, sph:1, spg:null}
 };
 const fmtN = (n, d = 0) => (Number(n)||0).toLocaleString('en-PH', {maximumFractionDigits:d});
 function calcPlan(o){
@@ -1832,7 +2261,7 @@ function viewDash(){
   <div class="btnrow"><button class="btn sm ghost" onclick="go('share')">💰 Tan-awa ang Partehanay</button></div>
   ${gen ? `<p class="small muted">Upod na diri ang general farm expenses nga ${money(gen)} (wala gin-assign sa isa ka tanom).</p>` : ''}
   <h2>Buluhaton & Alerts</h2>
-  ${alerts.length ? alerts.slice(0, 12).map(a => `<div class="alert ${a.lvl}" onclick="state.tab='${a.lvl==='info'||a.html.includes('late')?'schedule':'records'}';go('planting','${a.pid}')"><div>${a.html}</div></div>`).join('') + (alerts.length > 12 ? `<p class="small muted">+${alerts.length-12} pa</p>` : '')
+  ${alerts.length ? alerts.slice(0, 12).map(a => `<div class="alert ${a.lvl}" onclick="state.tab='${a.tab || (a.lvl==='info'||a.html.includes('late')?'schedule':'records')}';go('planting','${a.pid}')"><div>${a.html}</div></div>`).join('') + (alerts.length > 12 ? `<p class="small muted">+${alerts.length-12} pa</p>` : '')
     : '<p class="muted small">Wala sang alert subong. 👍</p>'}
   <h2>Mga Tanom</h2>
   ${ps.length ? ps.map(pCard).join('') : `<div class="card empty">Wala pa sang tanom.<br><br><button class="btn" onclick="plantingForm()">+ Magdugang sang Tanom</button></div>`}`;
@@ -1870,7 +2299,7 @@ function viewPlanting(){
   if (!p) return '<div class="card empty">Wala makit-an ang tanom.</div>';
   const s = stats(p.id), c = crop(p);
   const dap = diffDays(p.datePlanted, today());
-  const tabs = [['records','📒 Records'],['harvest','🧺 Harvest/Benta'],['schedule','🗓️ Schedule'],['summary','📊 Summary'],['guide','📖 Guide']];
+  const tabs = [['records','📒 Records'],['pests','🐛 Peste'],['harvest','🧺 Harvest/Benta'],['schedule','🗓️ Schedule'],['summary','📊 Summary'],['guide','📖 Guide']];
   const tab = tabs.some(t => t[0] === state.tab) ? state.tab : 'records';
   let body = '';
   if (tab === 'records') {
@@ -1905,6 +2334,8 @@ function viewPlanting(){
       return `<div class="rowi" onclick="orderForm('${o.id}')"><span class="ic">🧴</span><div class="grow"><b>${esc(o.product)}</b> — ${esc(o.target)}
         <div class="small muted">${fmtD(o.date)} · ${esc(o.doseText)} · PHI ${o.phi ?? '-'}d</div></div>
         <span>${o.cancelled ? '✖️' : r ? (r.outcome === 'done' ? '🟢' : '🟡') : '🔴'}</span></div>`; }).join('')}</div>` : ''}`;
+  } else if (tab === 'pests') {
+    body = pestReportHtml(p);
   } else if (tab === 'summary') {
     body = summaryHtml(p, s);
   } else {
@@ -1983,7 +2414,8 @@ function actRow(a, showP = true){
   if (a.category === 'pest_monitoring' && a.pest) bits.push(`${esc(a.pest)} (${esc(a.severity||'-')})`);
   if (a.category === 'pesticide' && a.phi) bits.push(`PHI ${a.phi}d`);
   if (a.reason) bits.push('🟡 ' + esc(a.reason));
-  if (a.photo) bits.push('📷');
+  if (photoList(a).length) bits.push('📷' + photoList(a).length);
+  if (a.incidence != null && a.pestFound) bits.push(a.incidence + '% sa sample');
   if (a.by === 'trabahante') bits.push('👷');
   return `<div class="rowi" onclick="actForm('${a.id}')"><span class="ic">${c.icon}</span>
     <div class="grow"><b>${esc(a.desc || c.short)}</b><div class="small muted">${bits.join(' · ')}</div></div>
@@ -2034,7 +2466,10 @@ function guideHtml(key, open){
   if (!g) return `<div class="card small">Wala pa specific nga guide para sa ${esc(c.name)}. Gamita ang general nga proseso: land prep → basal fertilizer → planting → pest monitoring kada semana → sidedress → weeding → harvest. Pamangkot sa inyo Municipal Agriculturist para sa recommended nga variety kag rate.</div>`;
   const sec = (t, arr) => `<h3>${t}</h3><ul>${arr.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`;
   return `<details ${open?'open':''}><summary>${c.emoji} ${esc(c.name)}</summary>
-    ${sec('🚜 Land Preparation', g.land)}${sec('🌱 Planting', g.plant)}${sec('🧪 Fertilizer', g.fert)}${sec('🐛 Pests & Diseases (para sa monitoring)', g.pests)}${sec('🧺 Harvest', g.harv)}</details>`;
+    ${sec('🚜 Land Preparation', g.land)}${sec('🌱 Planting', g.plant)}${sec('🧪 Fertilizer', g.fert)}${sec('🐛 Pests & Diseases (para sa monitoring)', g.pests)}
+    ${(CRIT[key] || []).length ? `<h3>⚠️ Kritikal nga stage (bantayi pag-ayo)</h3><ul>${CRIT[key].map(c => `<li><b>Day ${c.from}–${c.to === 'H' ? 'harvest' : c.to}: ${esc(c.name)}</b><br>🐛 ${c.pests.map(esc).join(', ')} · 🍂 ${c.dis.map(esc).join(', ')}<br><span class="small">${esc(c.focus)}</span></li>`).join('')}</ul>` : ''}
+    ${(DISEASES[key] || []).length ? `<h3>🍂 Unsaon pag-ila sa sakit</h3><ul>${DISEASES[key].map(([n, h]) => `<li><b>${esc(n)}</b>: ${esc(h)}</li>`).join('')}</ul>` : ''}
+    ${sec('🧺 Harvest', g.harv)}</details>`;
 }
 function viewGuide(){
   return `<div class="alert warn"><div><b>Paalala:</b> General guide lang ini. Para sa eksakto nga rate sang abono, pa-soil test sa DA / Municipal Agriculturist. Sa pesticide, sundon permi ang label: rate, PHI (pre-harvest interval), kag magsuksok sang PPE.</div></div>
@@ -2237,7 +2672,7 @@ function actForm(id, preset = {}){
     <p class="hint" id="h_pm">Pest monitoring: puwede 0 ang gasto. Importante ang record para makita ang pattern.</p>
     <label>Notes<textarea id="f_notes">${esc(a.notes||'')}</textarea></label>
     ${a.doneAt ? `<p class="small muted">Gi-record sa ${esc(a.by || '')} · ${timeStr(a.doneAt)} · ${esc(a.status || '')}${a.reason ? ' · ' + esc(a.reason) : ''}</p>` : ''}
-    ${a.photo ? `<button class="btn sm ghost" onclick="showPhoto('${a.id}')">📷 Tan-awa ang litrato</button>` : ''}
+    ${photoList(a).length ? `<button class="btn sm ghost" onclick="showPhoto('${a.id}')">📷 Tan-awa ang litrato (${photoList(a).length})</button>` : ''}
     <datalist id="units"><option>kg</option><option>sack</option><option>bag</option><option>L</option><option>mL</option><option>bottle</option><option>pack</option><option>pcs</option><option>man-day</option><option>hour</option><option>trip</option><option>tray</option></datalist>`,
   () => {
     if (!v('f_date')) { toast('Butangi sang petsa'); return false; }

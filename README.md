@@ -20,6 +20,24 @@ Ablihi ang app ug sundon lang ang makita:
 
 **Selector sa ibabaw sa TRABAHO:** "👤 Kinsa nga taho?" (admin ra) ug "🌱 Unsa nga tanom?". Ang listahan sa tanom mosunod sa napili nga taho, ug kon daghan ang batch (pananglitan 2 ka Sweet Corn), mapili ang matag usa. Makita usab pila ang buhaton sa matag pilianan.
 
+## 🐛 Pest monitoring: buntag ug hapon, uban ang litrato
+- Matag adlaw, sa matag tanom (human sa Day 7): **🌅 BUNTAG** (6–9 AM) ug **🌇 HAPON** (3–6 PM, mogawas human sa 12:00).
+- **Sample nga tanom**: 10 ka parehas nga tanom matag adlaw (markahi og lipak o plastic 1–10). Usba ang gidaghanon sa Crop Schedule → "Pila ka sample nga tanom".
+- **Trabahante**: ✅ WALAY MANANAP, o 🐛 NAAY MANANAP — PICTURAN → pindota ang numero sa tanom → 📷 litrato, unsa nga mananap, ug pila → I-SAVE. Ang app mo-compute sa **% sa sample** (pananglitan 2 sa 10 = 20%).
+- **Admin, sa tanom → 🐛 Peste**: stage sa tanom karon, talaan sa buntag ug hapon (14 ka adlaw), mga mananap nga nakita, gallery sa litrato, mga spray nga nagamit na (uban ang pahimangno kon parehas ang active ingredient), ug button nga **🧴 Himo og Spray Order** (nakabutang na ang peste).
+- Ang hilo: ang manager ra (uban ang technician) ang modesisyon, gamit ang produkto nga **rehistrado sa FPA**. Walay automatic nga spray.
+- Kon gusto nga dili kada adlaw: Crop Schedule → Pest check → "Kada pila ka adlaw".
+
+## ⚠️ Kritikal nga stage ug 🍂 sakit
+- Ang matag crop naay **kritikal nga stage** (pananglitan sa mais: Pagtubo, Whorl, **Tasseling/Silking**, Pagpuno sa dalumpit), uban ang **mananap ug sakit nga bantayan** ug unsay tan-awon.
+- Sa pest check sa trabahante: dalag nga kahon nga **⚠️ KRITIKAL NGA STAGE**, ug "Unsaon pag-ila sa sakit?" (mga sintomas).
+- **🍂 Sakit sa sample**: matag sample nga tanom, mapili ang mananap ug/o sakit (uban ang sintomas), ug naay litrato. Bulag ang % sa mananap ug % sa sakit.
+- **Balantaya (alerts)**: naay sakit nakit-an (pula), kritikal nga stage karon o sa sulod sa 3 ka adlaw, ug kon **naulan ≥10 mm** (taas ang risgo sa sakit; kinahanglan ang location sa uma).
+- **🐛 Peste report**: timeline sa kritikal nga stage, ang % sa mananap 🐛 ug sakit 🍂 sa buntag ug hapon, ug mga litrato.
+- Kinatibuk-ang giya ra kini. Pangutana sa technician o DA para sa inyong lugar.
+
+**Bag-ong crop:** Talong (naa nay schedule), Pipino, Chinese Cabbage (Pechay Baguio / Wombok), ug Carrot. Ang matag usa naay schedule, guide, spacing, target, mananap, sakit, ug kritikal nga stage.
+
 ## 👷 I-set ang cellphone sa trabahante
 1. I-setup una ang **GitHub Sync** sa iyang cellphone (Settings).
 2. Settings → **👷 Himoa kini nga cellphone para sa trabahante** → ibutang ang Admin PIN.
