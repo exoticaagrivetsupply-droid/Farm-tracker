@@ -1,34 +1,57 @@
 # 🌱 Farm Tracker
 
-App para sa records sang uma: halin sa land prep tubtob harvest, upod ang capital, kita, kag ganansya ukon lugi kada tanom.
+App para sa records sa uma: gikan sa land prep hangtod harvest, ang capital, kita, ug ganansya o lugi sa matag tanom. Karon naa nay **TRABAHO KARONG ADLAWA** para sa trabahante.
 
-## Mga file (i-upload TANAN sa GitHub repo)
+## Mga file (i-upload TANAN sa GitHub repo nga Farm-tracker)
+`index.html`, `manifest.webmanifest`, `sw.js`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`
 
-| File | Para sa |
+## ✅ TRABAHO KARONG ADLAWA (para sa trabahante)
+Ablihi ang app ug sundon lang ang makita:
+- **🔴 KARON**: ang tanang buhaton karong adlawa. Ang 🟡 nagpasabot nga naghulat o wala pa nahuman.
+- **📅 SUNOD**: ang trabaho sa sunod nga 7 ka adlaw.
+- **🟢 NAHUMAN NA**: ang mga nahuman na, uban ang petsa ug oras.
+
+| Trabaho | Buttons |
 |---|---|
-| `index.html` | Ang app mismo |
-| `manifest.webmanifest` | Para ma-install sa cellphone (ngalan, icon, kolor) |
-| `sw.js` | Para mag-abri bisan wala internet |
-| `icon-192.png`, `icon-512.png`, `apple-touch-icon.png` | Icon sa home screen |
+| 💧 PATUBIG | NAPATUBIGAN NA · BASA PA ANG YUTA · WALA MAPATUBIGI (rason: walay tubig, naulan, basa pa, wala nahuman, uban pa) |
+| 🌱 PAG-ABONO | DONE. Makita ang abono ug pila ka kilo para sa area. |
+| 🐛 CHECK SA PESTE | WALAY PESTE · NAAY PESTE (pilia ang peste, pila ka tanom, litrato) · KINAHANGLANG TABANG |
+| 🧴 PAG-SPRAY | Mogawas lang kon naghimo ang admin og **Spray Order**. |
 
-## I-upload sa GitHub
-1. Kadto sa app repo mo sa GitHub (hal. `uma-tracker`).
-2. **Add file → Upload files** → i-drag ang **tanan nga 6 ka file** → **Commit changes**.
-3. Hulat mga 1–2 minutos para mag-update ang GitHub Pages.
+## 👷 I-set ang cellphone sa trabahante
+1. I-setup una ang **GitHub Sync** sa iyang cellphone (Settings).
+2. Settings → **👷 Himoa kini nga cellphone para sa trabahante** → ibutang ang Admin PIN.
+3. Ang TRABAHO ra ang makita. Para makabalik sa admin, pindota ang **🔒 Admin** sa ubos ug ibutang ang PIN.
 
-(Kon gusto mo ilisan ang ngalan sang repo sa `farm-tracker`: **Settings → General → Repository name**. Ang link mangin `https://<username>.github.io/farm-tracker/`. Ang data indi madula kon pareho gihapon ang link nga gina-abrihan mo. Kon nag-ilis ka sang link, i-sync anay sa GitHub sa daan nga link antes mag-ilis.)
+## ⚙️ Para sa admin
+- **Settings → Crop Schedule ug Abono**: usba ang trabaho, adlaw, instruksyon, kada pila ka adlaw ang patubig ug pest check, ug ang **abono + dosage** (kg/ha, sako/ha, o gramo/tanom). Ang app mo-compute sa total kilo base sa area sa matag tanom (pananglitan: 100 kg/ha × 0.5 ha = 50 kg). **Walay default nga dosage.** Ibutang base sa soil test o rekomendasyon sa DA o technician.
+- **Settings → Manager ug location**: numero sa manager (para sa button nga KINAHANGLANG TABANG) ug location sa uma (para makita ang ulan gikan sa Open-Meteo).
+- **Spray Order** (sa page sa tanom o sa ➕): produkto, active ingredient, FPA reg. no., dosage, PHI ug REI. Kopyaha ang tanan gikan sa label. Ang app dili mohatag og brand o dosage, ug dili mo-schedule og spray nga awtomatiko.
+- **Dashboard alerts**: makita kon naay peste nga nakit-an o nangayo og tabang ang trabahante.
 
-## I-install sa cellphone (Android)
-1. Buksi ang link sa **Google Chrome** (indi sa Messenger ukon Facebook browser).
-2. Pindota ang **📲 Install** sa ibabaw, ukon **⋮ → Install app**.
-3. Ara na ang **Farm Tracker** sa home screen kag sa app drawer, daw normal nga app.
+## 💰 Partehanay (Sinaligan ug Agente)
+**Pormula sa matag tanom:**
+1. **Benta (gross)** − **Agente 10%** sa gross
+2. − **Tanang gasto** sa tanom (binhi, abono, spray, bayad sa trabahante, ug uban pa)
+3. − **Parte sa general farm expenses** (walay tanom), nga gibahin base sa area sa mga tanom nga aktibo niadtong petsaha
+4. = **NET**
+5. **Sinaligan: 10% sa NET sa iyang kaugalingong area.** Kon lugi, ₱0 ang iyang parte. Ang nahabilin, **imo**.
 
-**iPhone:** buksi sa **Safari** → **Share** → **Add to Home Screen**.
+Pananglitan: Benta ₱100,000 − Agente ₱10,000 − Gasto ₱20,000 − General ₱5,000 = NET ₱65,000. Si Juan: ₱6,500. Imo: ₱58,500.
 
-## Kon wala nagagwa ang "Install app"
-- Dapat ang link nagasugod sa `https://` kag halin sa GitHub Pages. Ang `index.html` nga gin-download kag ginbuksan sa cellphone indi ma-install.
-- Siguroha nga na-upload ang tanan nga 6 ka file, indi lang ang `index.html`.
-- Isara ang Chrome tab, hulat 2 minutos, kag buksi liwat.
+**Setup (isa ra ka higayon):**
+1. **💰 Partehanay → ⚙️ Sinaligan, agente %, sweldo**: idugang ang 2 ka sinaligan (ngalan, numero, 10%), ang agente 10%, ug ang sweldo sa bayaran nga trabahante kada adlaw.
+2. **Edit Tanom → 👤 Sinaligan**: pilia kinsa ang nagdala sa matag area.
+3. Sa cellphone sa matag sinaligan: **Settings → 👷 Himoa kini nga cellphone para sa trabahante** → pilia ang iyang ngalan. Iyang mga tanom ra ang makita, ug naa siyay **💰 PARTE** tab.
 
-## GitHub Sync (data)
-Indi nagbag-o: **⚙️ Settings → GitHub Sync**. Ibutang ang username, private data repo, kag token (fine-grained, *Contents: Read and write*, para sa data repo lang).
+**Kinsa ang mobuhat (makita sa matag trabaho):**
+- **👤 IMONG TRABAHO** (sinaligan, walay dugang bayad): taho-taho, patubig, pest check, spray
+- **💰 BAYAD SA TAG-IYA**: abono, gabot sa sagbot, land prep, pagtanom, harvest. Sa DONE, pangutan-on ang trabahante kung **pila ka trabahante** ang gibayran. Ang app mo-compute dayon: tawo × sweldo = gasto.
+- Ang admin makausab niini sa matag trabaho: Settings → Crop Schedule → "Kinsa ang mobuhat".
+
+**Harvest:** sa matag benta, naka-check ang "Gibaligya pinaagi sa agente". I-uncheck kon diretso nga baligya (walay komisyon).
+**Pagbayad sa sinaligan:** 💰 Partehanay → "💵 Markahi nga nabayran na". Kon mausab ang records human sa pagbayad, ipakita sa app ang kulang o sobra.
+
+## Data
+- Ang mga daan nga record wala nausab. Mga bag-ong listahan sa data: `orders`, `templates`, `settings`.
+- Ang litrato sa peste ma-save sa cellphone, ug sa sync ma-upload sa `farm-data` repo sa folder nga `photos/`.
