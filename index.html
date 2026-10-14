@@ -541,7 +541,17 @@ function getTpl(cropKey){
 }
 const taskKey = (pid, kind, id) => `${pid}:${kind}:${id}`;
 const recByKey = key => db.activities.find(a => a.taskKey === key);
-const farmSet = () => db.settings.find(s => s.id === 'farm') || {id:'farm'};
+/* Settings: gibulag nga records aron dili magtabonay sa sync
+   'farm'  = manager, numero, location
+   'share' = agente %, sweldo, partehanay options
+   'ct_<id>' = matag sinaligan (type:'caretaker') */
+const settingRec = id => db.settings.find(s => s.id === id);
+const SHARE_KEYS = ['agentPct', 'wage', 'genShare', 'showShare'];
+function farmSet(){
+  const f = settingRec('farm') || {}, sh = settingRec('share') || {}, out = Object.assign({id:'farm'}, f);
+  SHARE_KEYS.forEach(k => { if (sh[k] !== undefined) out[k] = sh[k]; });
+  return out;
+}
 const isWorker = () => cfg().role === 'worker';
 /* Kinsa nga sinaligan ang gitan-aw: worker phone = iyang kaugalingon; admin = filter */
 const myCaretaker = () => isWorker() ? (cfg().caretakerId && ctById(cfg().caretakerId) ? cfg().caretakerId : null) : (state.ctFilter || null);
@@ -1019,6 +1029,7 @@ function viewWork(){
     `<button class="${(state.ctFilter || null) === id ? 'on' : ''}" onclick="state.ctFilter=${id ? `'${id}'` : 'null'};render()">${l}</button>`).join('')}</div>` : '';
   return `<div class="wk-top"><div class="wk-h1">TRABAHO KARONG ADLAWA</div><div class="wk-date">${parseD(t).toLocaleDateString('en-PH', {weekday:'long', month:'long', day:'numeric', year:'numeric'})}</div>
     ${meCt ? `<div class="wk-me">👤 ${esc(meCt.name)}</div>` : ''}</div>
+    ${(!isWorker() && Object.keys(orphanCts()).length ? `<div class="alert warn" onclick="ctForm()" style="cursor:pointer"><div>⚠️ <b>${Object.keys(orphanCts()).length} ka sinaligan ang nawala ang ngalan</b> pero naa pa ang ilang tanom. <u>Pindota diri</u> aron ibalik.</div></div>` : '')}
     ${chips}
     <div class="wk-tabs${showShareTab ? ' four' : ''}">
       <button class="${tab==='karon'?'on':''}" onclick="state.wtab='karon';render()">🔴 KARON${todo ? ` (${todo})` : ''}</button>
@@ -1180,7 +1191,7 @@ function farmForm(){
     <button class="btn sm ghost" onclick="useGps()">📍 Gamita ang location karon (adto sa uma)</button>
     <p class="hint">Optional. Kon naay location, ipakita sa PATUBIG ang ulan gahapon ug karon (Open-Meteo forecast).</p>`,
   () => {
-    const r = Object.assign({}, f, {id:'farm', manager:v('f_mgr').trim(), phone:v('f_phone').trim(), lat:num('f_lat'), lon:num('f_lon')});
+    const r = Object.assign({}, settingRec('farm') || {}, {id:'farm', manager:v('f_mgr').trim(), phone:v('f_phone').trim(), lat:num('f_lat'), lon:num('f_lon')});
     upsert('settings', r); localStorage.removeItem(WX_KEY); toast('Na-save');
   });
 }
@@ -1200,7 +1211,20 @@ function useGps(){
    Tag-iya: NET − parte sa sinaligan
    ========================================================= */
 const DEFAULT_AGENT_PCT = 10, DEFAULT_CT_PCT = 10;
-const caretakers = () => (farmSet().caretakers || []);
+function caretakersAll(){
+  const recs = db.settings.filter(s => s.type === 'caretaker');
+  const ids = new Set(recs.map(r => r.ctId));
+  const legacy = ((settingRec('farm') || {}).caretakers || []).filter(c => !ids.has(c.id));
+  return [...recs.map(r => ({id:r.ctId, name:r.name, phone:r.phone, pct:r.pct, removed:!!r.removed, order:r.order ?? 99})),
+          ...legacy.map((c, i) => Object.assign({order:i}, c))].sort((a, b) => a.order - b.order || String(a.name).localeCompare(String(b.name)));
+}
+const caretakers = () => caretakersAll().filter(c => !c.removed);
+/* Mga caretakerId sa tanom nga wala na ang ngalan (nawala tungod sa daang sync) */
+function orphanCts(){
+  const known = new Set(caretakersAll().map(c => c.id)), out = {};
+  db.plantings.forEach(p => { if (p.caretakerId && !known.has(p.caretakerId)) (out[p.caretakerId] = out[p.caretakerId] || []).push(p); });
+  return out;
+}
 const ctById = id => id ? caretakers().find(c => c.id === id) : null;
 const agentPct = () => farmSet().agentPct ?? DEFAULT_AGENT_PCT;
 const hvAgent = h => h.viaAgent === false ? 0 : (Number(h.total) || 0) * (h.agentPct ?? agentPct()) / 100;
@@ -1296,6 +1320,7 @@ function viewShare(){
     ${stat('🏠 Imong parte', money(ownerFinal), ownerFinal >= 0 ? 'pos' : 'neg')}
   </div>
   ${unalloc > 0.5 ? `<p class="small muted">Upod sa gasto ang ${money(unalloc)} nga general expenses nga walay tanom nga aktibo niadtong petsaha (imo ra).</p>` : ''}
+  ${(!isWorker() && Object.keys(orphanCts()).length ? `<div class="alert warn" onclick="ctForm()" style="cursor:pointer"><div>⚠️ <b>${Object.keys(orphanCts()).length} ka sinaligan ang nawala ang ngalan</b> pero naa pa ang ilang tanom. <u>Pindota diri</u> aron ibalik.</div></div>` : '')}
   ${!cts.length ? `<div class="alert warn"><div>Wala pay sinaligan. Pindota ang <b>⚙️ Sinaligan</b> para idugang sila, dayon i-assign sa matag tanom (Edit Tanom → Sinaligan).</div></div>` : ''}
   ${cts.map(c => sec(`👤 ${esc(c.name)}`, db.plantings.filter(p => p.caretakerId === c.id))).join('')}
   ${sec('🏠 Walay sinaligan (imo tanan)', db.plantings.filter(p => !ctById(p.caretakerId)))}
@@ -1311,7 +1336,9 @@ function viewShare(){
 let ctEdit = null;
 function ctForm(){
   const f = farmSet();
-  ctEdit = {list:JSON.parse(JSON.stringify(f.caretakers || [])), agentPct:f.agentPct ?? DEFAULT_AGENT_PCT, wage:f.wage ?? null,
+  const orph = orphanCts();
+  ctEdit = {list:JSON.parse(JSON.stringify(caretakers())).concat(Object.keys(orph).map(id => ({id, name:'', pct:DEFAULT_CT_PCT, orphan:true}))),
+    orig:caretakersAll().map(c => c.id), agentPct:f.agentPct ?? DEFAULT_AGENT_PCT, wage:f.wage ?? null,
     genShare:f.genShare !== false, showShare:f.showShare !== false};
   ctRender();
 }
@@ -1324,8 +1351,11 @@ function ctRender(){
   const e = ctEdit;
   modal('⚙️ Sinaligan ug Partehanay', `
     <h3>👤 Mga sinaligan</h3>
-    ${e.list.map((c, i) => `<div class="card" style="background:var(--green2)">
-      <div class="row2"><label>Ngalan<input id="ct_name_${i}" value="${esc(c.name || '')}"></label>
+    ${e.list.some(c => c.orphan) ? `<div class="alert warn"><div><b>Naay ${e.list.filter(c => c.orphan).length} ka sinaligan nga nawala ang ngalan</b> (tungod sa daang sync), pero naa pa ang ilang mga tanom. Ibutang ang ngalan aron mabalik — dili na kinahanglan i-tag pag-usab ang tanom.
+      ${cfg().token ? `<div class="btnrow" style="margin-bottom:0"><button class="btn sm" onclick="ctRead();recoverCtNames()">🔎 Pangitaa ang ngalan sa GitHub history</button></div>` : ''}</div></div>` : ''}
+    ${e.list.map((c, i) => `<div class="card" style="background:${c.orphan ? '#fff1c2' : 'var(--green2)'}">
+      ${c.orphan ? `<div class="small"><b>⚠️ Nawala ang ngalan.</b> Iyang mga tanom: ${(orphanCts()[c.id] || []).map(p => esc(pName(p))).join(', ')}</div>` : ''}
+      <div class="row2"><label>Ngalan<input id="ct_name_${i}" value="${esc(c.name || '')}" ${c.orphan ? 'placeholder="Kinsa ni?"' : ''}></label>
       <label>Numero<input id="ct_phone_${i}" type="tel" value="${esc(c.phone || '')}"></label></div>
       <div class="row2"><label>Parte (% sa net sa iyang area)<input id="ct_pct_${i}" type="number" step="any" inputmode="decimal" value="${c.pct ?? DEFAULT_CT_PCT}"></label>
       <div style="align-self:end;padding-bottom:4px"><button class="btn sm ghost" onclick="ctRead();ctEdit.list.splice(${i},1);ctRender()">🗑 Tangtanga</button></div></div></div>`).join('')}
@@ -1338,10 +1368,43 @@ function ctRender(){
     <label class="check"><input type="checkbox" id="f_showShare" ${e.showShare ? 'checked' : ''}> Ipakita sa sinaligan ang ilang gibanabana nga parte (sa ilang cellphone)</label>`,
   () => {
     ctRead();
-    if (e.list.some(c => !c.name)) { toast('Butangi og ngalan ang matag sinaligan'); return false; }
-    upsert('settings', Object.assign({}, farmSet(), {id:'farm', caretakers:e.list, agentPct:e.agentPct, wage:e.wage, genShare:e.genShare, showShare:e.showShare}));
+    if (e.list.some(c => !c.name && !c.orphan)) { toast('Butangi og ngalan ang matag sinaligan'); return false; }
+    upsert('settings', Object.assign({}, settingRec('share') || {}, {id:'share', agentPct:e.agentPct, wage:e.wage, genShare:e.genShare, showShare:e.showShare}));
+    const keep = e.list.filter(c => c.name);
+    keep.forEach((c, i) => {
+      const old = settingRec('ct_' + c.id);
+      if (old && !old.removed && old.name === c.name && old.phone === c.phone && old.pct === c.pct && old.order === i) return;
+      upsert('settings', {id:'ct_' + c.id, type:'caretaker', ctId:c.id, name:c.name, phone:c.phone || '', pct:c.pct, order:i, removed:false});
+    });
+    e.orig.filter(id => !keep.some(c => c.id === id)).forEach(id => upsert('settings', {id:'ct_' + id, type:'caretaker', ctId:id, name:(caretakersAll().find(c => c.id === id) || {}).name || '', removed:true}));
     toast('Na-save');
   });
+}
+
+async function recoverCtNames(){
+  const c = cfg(), want = ctEdit.list.filter(x => x.orphan && !x.name).map(x => x.id);
+  if (!want.length) { toast('Wala nay kulang nga ngalan'); return; }
+  toast('Nangita sa GitHub history…');
+  const h = {Authorization:'Bearer ' + c.token, Accept:'application/vnd.github+json'};
+  const found = {};
+  try {
+    const r = await fetch(`https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}/commits?path=${encodeURIComponent(c.path)}&sha=${encodeURIComponent(c.branch || 'main')}&per_page=60`, {headers:h});
+    if (!r.ok) throw new Error(await ghErr(r));
+    for (const cm of await r.json()) {
+      if (want.every(id => found[id])) break;
+      const rr = await fetch(ghUrl(c) + '?ref=' + cm.sha, {headers:{...h, Accept:'application/vnd.github.raw+json'}});
+      if (!rr.ok) continue;
+      let d; try { d = JSON.parse(await rr.text()); } catch(e) { continue; }
+      (d.settings || []).forEach(s => {
+        (s.id === 'farm' ? (s.caretakers || []) : s.type === 'caretaker' ? [{id:s.ctId, name:s.name, phone:s.phone, pct:s.pct}] : [])
+          .forEach(ct => { if (want.includes(ct.id) && ct.name && !found[ct.id]) found[ct.id] = ct; });
+      });
+    }
+  } catch(e) { toast('Dili makapangita: ' + e.message); return; }
+  let n = 0;
+  ctEdit.list.forEach(x => { const f2 = found[x.id]; if (x.orphan && f2) { x.name = f2.name; x.phone = x.phone || f2.phone || ''; x.pct = f2.pct ?? x.pct; n++; } });
+  ctRender();
+  toast(n ? `✅ Nakit-an ${n} ka ngalan. Pindota ang I-save.` : 'Wala makit-i sa history. I-type na lang ang ngalan.');
 }
 
 /* ---------- Kinsa ang mobuhat sa trabaho ---------- */

@@ -1,5 +1,5 @@
 // Farm Tracker service worker: makes the app installable and usable offline.
-const CACHE = 'farm-tracker-v7';
+const CACHE = 'farm-tracker-v8';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
