@@ -50,6 +50,7 @@ Pananglitan: Benta ₱100,000 − Agente ₱10,000 − Gasto ₱20,000 − Gener
 - Ang admin makausab niini sa matag trabaho: Settings → Crop Schedule → "Kinsa ang mobuhat".
 
 **Harvest:** sa matag benta, naka-check ang "Gibaligya pinaagi sa agente". I-uncheck kon diretso nga baligya (walay komisyon).
+**Pagtan-aw:** sa ibabaw sa 💰 Partehanay naay **"Kinsa ang lantawon?"**: Tanan (summary), matag sinaligan, Walay sinaligan, o Agente. Sa matag sinaligan naay filter nga Aktibo / Tapos na, ug makita ang "Kulang pa bayran".
 **Pagbayad sa sinaligan:** 💰 Partehanay → "💵 Markahi nga nabayran na". Kon mausab ang records human sa pagbayad, ipakita sa app ang kulang o sobra.
 
 ## 🎯 Target sa Produksyon

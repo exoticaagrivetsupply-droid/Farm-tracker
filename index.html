@@ -139,6 +139,7 @@ body.worker main{padding-bottom:40px}
 .wk-tabs.four{grid-template-columns:repeat(4,1fr)}.wk-tabs.four button{font-size:12px;padding:12px 2px}
 .labor-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.labor-grid .bigbtn{font-size:24px;padding:14px 0}
 .sh-card .tbl td{font-size:14px}
+.big-select{font-size:18px;font-weight:700;padding:14px;border:2px solid var(--green);background:#fff}
 @media print{header,nav,.fab,.btnrow,.tabs{display:none}main{padding:0}}
 </style>
 </head>
@@ -1297,39 +1298,66 @@ function viewShare(){
   const f = farmSet(), cts = caretakers(), tot = farmTotals();
   const unalloc = sum(db.activities.filter(a => !a.plantingId), a => a.cost) - db.plantings.reduce((t, p) => t + stats(p.id).gen, 0);
   const ownerFinal = tot.owner - (unalloc > 0.5 ? unalloc : 0);
-  const sec = (title, ps) => {
-    if (!ps.length) return '';
-    const t = farmTotals(p => ps.includes(p));
-    const paid = ps.reduce((x, p) => x + (p.sharePaid ? p.sharePaid.amount : 0), 0);
-    return `<h2>${title}</h2>
-      <div class="stats">${stat('Benta', money(t.gross))}${stat('NET', money(t.net), t.net >= 0 ? 'pos' : 'neg')}${t.ct ? stat('Ilang parte', money(t.ct)) : ''}${t.ct ? stat('Nabayran na', money(paid)) : ''}</div>
-      ${[...ps].sort((a, b) => (b.datePlanted || '').localeCompare(a.datePlanted || '')).map(shareRow).join('')}`;
+  const noCt = db.plantings.filter(p => !ctById(p.caretakerId));
+  // Selector: kinsa ang gusto lantawon
+  let selv = state.shareSel || 'all';
+  if (selv.startsWith('ct:') && !ctById(selv.slice(3))) selv = 'all';
+  const stF = state.shareSt || 'all';
+  const stOk = p => stF === 'all' || (stF === 'done' ? p.status === 'done' : p.status !== 'done');
+  const opts = [['all', '👥 Tanan (summary)'], ...cts.map(c => ['ct:' + c.id, `👤 ${c.name} (${db.plantings.filter(p => p.caretakerId === c.id).length} ka tanom)`]),
+    ...(noCt.length ? [['none', `🏠 Walay sinaligan (${noCt.length})`]] : []), ['agent', '🤝 Agente sa merkado']];
+  const selector = `<label style="margin:0 0 12px">Kinsa ang lantawon?<select class="big-select" onchange="state.shareSel=this.value;render()">${opts.map(([k, l]) => `<option value="${k}" ${selv === k ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`;
+  const stChips = `<div class="tabs" style="margin:10px 0">${[['all','Tanan'],['active','🌱 Aktibo'],['done','✅ Tapos na']].map(([k, l]) => `<button class="${stF === k ? 'on' : ''}" onclick="state.shareSt='${k}';render()">${l}</button>`).join('')}</div>`;
+  const personBlock = (title, ps, ct) => {
+    const list = ps.filter(stOk).sort((a, b) => (b.datePlanted || '').localeCompare(a.datePlanted || ''));
+    const t = farmTotals(p => list.includes(p));
+    const paid = list.reduce((x, p) => x + (p.sharePaid ? p.sharePaid.amount : 0), 0);
+    return `<h2>${title}</h2>${ct ? `<p class="small muted" style="margin-top:-6px">${fmtN(ct.pct ?? DEFAULT_CT_PCT, 1)}% sa NET sa iyang area${ct.phone ? ` · 📞 <a href="tel:${esc(ct.phone)}">${esc(ct.phone)}</a>` : ''}</p>` : ''}
+      ${stChips}
+      <div class="stats">${stat('Benta', money(t.gross))}${stat('NET', money(t.net), t.net >= 0 ? 'pos' : 'neg')}
+        ${ct ? stat('Iyang parte', money(t.ct)) + stat('Nabayran na', money(paid)) + stat('Kulang pa bayran', money(Math.max(0, t.ct - paid)), t.ct - paid > 0.5 ? 'neg' : '') : stat('🏠 Imo', money(t.owner), t.owner >= 0 ? 'pos' : 'neg')}</div>
+      ${list.length ? list.map(shareRow).join('') : '<div class="card empty">Walay tanom niini nga filter.</div>'}`;
   };
+  let body = '';
+  if (selv === 'all') {
+    const row = (sel, name, ps, isCt) => {
+      const t = farmTotals(p => ps.includes(p)), paid = ps.reduce((x, p) => x + (p.sharePaid ? p.sharePaid.amount : 0), 0);
+      return `<div class="rowi" onclick="state.shareSel='${sel}';render()"><span class="ic">${isCt ? '👤' : '🏠'}</span>
+        <div class="grow"><b>${esc(name)}</b><div class="small muted">${ps.length} ka tanom · Benta ${money(t.gross)} · NET <span class="${t.net >= 0 ? 'pos' : 'neg'}">${money(t.net)}</span></div></div>
+        <div style="text-align:right">${isCt ? `<b>${money(t.ct)}</b><div class="small ${t.ct - paid > 0.5 ? 'neg' : 'muted'}">${t.ct - paid > 0.5 ? 'kulang ' + money(t.ct - paid) : 'bayad na'}</div>` : `<b>${money(t.owner)}</b>`}</div><span>›</span></div>`;
+    };
+    body = `<div class="stats">
+      ${stat('Total nga benta', money(tot.gross))}${stat('Agente', money(tot.agent))}
+      ${stat('Tanang gasto', money(tot.cost + (unalloc > 0.5 ? unalloc : 0)))}${stat('Parte sa sinaligan', money(tot.ct))}
+      ${stat('🏠 Imong parte', money(ownerFinal), ownerFinal >= 0 ? 'pos' : 'neg')}</div>
+      ${unalloc > 0.5 ? `<p class="small muted">Upod sa gasto ang ${money(unalloc)} nga general expenses nga walay tanom nga aktibo niadtong petsaha (imo ra).</p>` : ''}
+      <h2>Matag sinaligan <span class="small muted">(pindota aron makita ang detalye)</span></h2>
+      <div class="card">${cts.map(c => row('ct:' + c.id, c.name, db.plantings.filter(p => p.caretakerId === c.id), true)).join('')}
+        ${noCt.length ? row('none', 'Walay sinaligan (imo tanan)', noCt, false) : ''}
+        <div class="rowi" onclick="state.shareSel='agent';render()"><span class="ic">🤝</span><div class="grow"><b>Agente sa merkado</b><div class="small muted">${fmtN(agentPct(), 1)}% sa gross</div></div><b>${money(tot.agent)}</b><span>›</span></div>
+        ${!cts.length && !noCt.length ? '<div class="empty">Wala pay tanom.</div>' : ''}</div>`;
+  } else if (selv === 'none') {
+    body = personBlock('🏠 Walay sinaligan (imo tanan)', noCt, null);
+  } else if (selv === 'agent') {
+    body = `<h2>🤝 Agente sa merkado</h2><div class="stats">${stat('Total nga komisyon', money(tot.agent))}${stat('Rate', fmtN(agentPct(), 1) + '% sa gross')}</div>
+    <div class="card">${db.harvests.length ? [...db.harvests].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 60).map(h => { const p = getP(h.plantingId);
+      return `<div class="rowi" onclick="hvForm('${h.id}')"><span class="ic">🧺</span><div class="grow"><b>${money(h.total)}</b> ${h.viaAgent === false ? '<span class="chip">diretso</span>' : ''}
+        <div class="small muted">${fmtD(h.date)} · ${p ? esc(pName(p)) : ''}${h.buyer ? ' · ' + esc(h.buyer) : ''}</div></div>
+        <b class="neg">${h.viaAgent === false ? '—' : '−' + money(hvAgent(h))}</b></div>`; }).join('') : '<div class="empty">Wala pay benta.</div>'}</div>`;
+  } else {
+    const c = ctById(selv.slice(3));
+    body = personBlock(`👤 ${esc(c.name)}`, db.plantings.filter(p => p.caretakerId === c.id), c);
+  }
   return `<h2 style="margin-top:0">💰 Partehanay</h2>
-  <div class="card small">
-    <b>Pormula:</b> Benta (gross) − Agente <b>${fmtN(agentPct(), 1)}%</b> sa gross − Tanang gasto = <b>NET</b>.<br>
+  ${selector}
+  ${(!isWorker() && Object.keys(orphanCts()).length ? `<div class="alert warn" onclick="ctForm()" style="cursor:pointer;margin-top:10px"><div>⚠️ <b>${Object.keys(orphanCts()).length} ka sinaligan ang nawala ang ngalan</b> pero naa pa ang ilang tanom. <u>Pindota diri</u> aron ibalik.</div></div>` : '')}
+  ${!cts.length ? `<div class="alert warn" style="margin-top:10px"><div>Wala pay sinaligan. Pindota ang <b>⚙️ Sinaligan</b> para idugang sila, dayon i-assign sa matag tanom (Edit Tanom → Sinaligan).</div></div>` : ''}
+  ${body}
+  <details class="card small" style="margin-top:16px"><summary>ℹ️ Pormula ug settings</summary>
+    <p>Benta (gross) − Agente <b>${fmtN(agentPct(), 1)}%</b> sa gross − Tanang gasto = <b>NET</b>.<br>
     Ang matag sinaligan: <b>${cts.length ? cts.map(c => `${esc(c.name)} ${fmtN(c.pct ?? DEFAULT_CT_PCT, 1)}%`).join(', ') : DEFAULT_CT_PCT + '%'}</b> sa NET sa <b>iyang kaugalingong area</b>. Ang nahabilin, imo.<br>
-    ${f.genShare === false ? 'Ang general expenses dili gi-apil sa partehanay (imo ra).' : 'Ang general farm expenses (walay tanom) gi-bahin sa mga tanom nga aktibo niadtong petsaha, base sa area.'}
-    <div class="btnrow" style="margin-bottom:0"><button class="btn sm ghost" onclick="ctForm()">⚙️ Sinaligan, agente %, sweldo</button></div>
-  </div>
-  <div class="stats">
-    ${stat('Total nga benta', money(tot.gross))}
-    ${stat('Agente', money(tot.agent))}
-    ${stat('Tanang gasto', money(tot.cost + (unalloc > 0.5 ? unalloc : 0)))}
-    ${stat('Parte sa sinaligan', money(tot.ct))}
-    ${stat('🏠 Imong parte', money(ownerFinal), ownerFinal >= 0 ? 'pos' : 'neg')}
-  </div>
-  ${unalloc > 0.5 ? `<p class="small muted">Upod sa gasto ang ${money(unalloc)} nga general expenses nga walay tanom nga aktibo niadtong petsaha (imo ra).</p>` : ''}
-  ${(!isWorker() && Object.keys(orphanCts()).length ? `<div class="alert warn" onclick="ctForm()" style="cursor:pointer"><div>⚠️ <b>${Object.keys(orphanCts()).length} ka sinaligan ang nawala ang ngalan</b> pero naa pa ang ilang tanom. <u>Pindota diri</u> aron ibalik.</div></div>` : '')}
-  ${!cts.length ? `<div class="alert warn"><div>Wala pay sinaligan. Pindota ang <b>⚙️ Sinaligan</b> para idugang sila, dayon i-assign sa matag tanom (Edit Tanom → Sinaligan).</div></div>` : ''}
-  ${cts.map(c => sec(`👤 ${esc(c.name)}`, db.plantings.filter(p => p.caretakerId === c.id))).join('')}
-  ${sec('🏠 Walay sinaligan (imo tanan)', db.plantings.filter(p => !ctById(p.caretakerId)))}
-  <h2>🤝 Agente sa merkado</h2>
-  <div class="card">${db.harvests.length ? [...db.harvests].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 30).map(h => { const p = getP(h.plantingId);
-    return `<div class="rowi" onclick="hvForm('${h.id}')"><span class="ic">🧺</span><div class="grow"><b>${money(h.total)}</b> ${h.viaAgent === false ? '<span class="chip">diretso</span>' : ''}
-      <div class="small muted">${fmtD(h.date)} · ${p ? esc(pName(p)) : ''}${h.buyer ? ' · ' + esc(h.buyer) : ''}</div></div>
-      <b class="neg">${h.viaAgent === false ? '—' : '−' + money(hvAgent(h))}</b></div>`; }).join('') : '<div class="empty">Wala pay benta.</div>'}
-    ${db.harvests.length ? `<p class="small"><b>Total komisyon sa agente: ${money(tot.agent)}</b></p>` : ''}</div>`;
+    ${f.genShare === false ? 'Ang general expenses dili gi-apil sa partehanay (imo ra).' : 'Ang general farm expenses (walay tanom) gi-bahin sa mga tanom nga aktibo niadtong petsaha, base sa area.'}</p>
+    <button class="btn sm ghost" onclick="ctForm()">⚙️ Sinaligan, agente %, sweldo</button></details>`;
 }
 
 /* ---------- Admin: sinaligan, agente %, sweldo ---------- */
