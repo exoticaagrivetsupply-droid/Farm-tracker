@@ -160,6 +160,11 @@ body.worker main{padding-bottom:40px}
 .crit-next{background:var(--blue2);border-radius:10px;padding:6px 10px;margin:6px 0}
 .crit-rain{background:#e3eef8;border-left:5px solid var(--blue);border-radius:10px;padding:8px 10px;margin:6px 0;font-size:15px}
 .ps-btn.dis{background:#8d5a2b;border-color:#8d5a2b;color:#fff}
+.fp-main{margin:0 0 12px;font-size:20px}
+.fp-cams{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.fp-cams .bigbtn{display:flex;align-items:center;justify-content:center}
+.fp-types{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fp-th{position:relative;display:inline-block}.fp-th img{width:84px;height:84px;object-fit:cover;border-radius:10px;background:#eee}
+.fp-th button{position:absolute;top:-6px;right:-6px;width:26px;height:26px;border-radius:50%;border:0;background:#b3261e;color:#fff;font-weight:800;cursor:pointer}
 @media print{header,nav,.fab,.btnrow,.tabs{display:none}main{padding:0}}
 </style>
 </head>
@@ -225,6 +230,7 @@ const CATS = {
   materials:      {name:'Materials / Tools (mulch, trellis, etc.)', short:'Materials', icon:'🧰'},
   harvest_cost:   {name:'Harvest & Hauling (Gasto)', short:'Harvest/Hauling', icon:'🧺'},
   transport:      {name:'Transport / Pamasahe / Gasolina', short:'Transport', icon:'🛻'},
+  observation:    {name:'Obserbasyon / Litrato sa uma', short:'Litrato', icon:'📷'},
   other:          {name:'Other / Iban pa', short:'Other', icon:'📌'}
 };
 
@@ -568,11 +574,11 @@ function getAlerts(){
       else if (nx) out.push({lvl:'info', sort:-50, pid:p.id, tab:'pests', html:`⏳ ${nm}: Sa ${nx.from - dapA} ka adlaw — kritikal nga stage <b>${esc(nx.name)}</b>. Andama: ${nx.pests.concat(nx.dis).slice(0, 4).map(esc).join(', ')}`});
     }
     db.activities.filter(a => a.plantingId === p.id && a.diseaseFound && diffDays(a.date, t) <= 7).slice(-1).forEach(a => out.push({lvl:'danger', sort:-175, pid:p.id, tab:'pests',
-      html:`🍂 ${nm}: <b>Naay SAKIT</b> — ${esc(a.disease)} (${a.disInc}% sa sample) ${sessLabel(a.session)}${photoList(a).length ? ' 📷' : ''}. Tan-awa ang 🐛 Peste report ug pangutana sa technician.`}));
+      html:`🍂 ${nm}: <b>Naay SAKIT</b> — ${esc(a.disease)} (${a.field ? '📷 litrato sa uma' : a.disInc + '% sa sample'}) ${sessLabel(a.session)}${photoList(a).length ? ' 📷' : ''}. Tan-awa ang 🐛 Peste report ug pangutana sa technician.`}));
     db.activities.filter(a => a.plantingId === p.id && (a.pestFound || a.help) && diffDays(a.date, t) <= 7).forEach(a => {
       const hasOrder = db.orders.some(o => o.plantingId === p.id && !o.cancelled && o.date >= a.date);
       if (a.help && a.outcome !== 'done') out.push({lvl:'danger', sort:-180, pid:p.id, html:`🆘 ${nm}: Nangayo og <b>TABANG</b> ang trabahante sa pest check (${fmtD(a.date)})`});
-      else if (a.pestFound && !hasOrder) out.push({lvl:'danger', sort:-170, pid:p.id, html:`🐛 ${nm}: Naay peste nakit-an — <b>${esc(a.pest)}</b> (${a.incidence != null ? a.incidence + '% sa sample' : esc(a.severity)})${sessLabel(a.session) ? ' ' + sessLabel(a.session) : ''}${photoList(a).length ? ' 📷' + photoList(a).length : ''}. Tan-awa ang 🐛 Peste report; himoa ang Spray Order kon kinahanglan gyud.`, tab:'pests'});
+      else if (a.pestFound && !hasOrder) out.push({lvl:'danger', sort:-170, pid:p.id, html:`🐛 ${nm}: Naay peste nakit-an — <b>${esc(a.pest)}</b> (${a.field ? '📷 litrato sa uma' : a.incidence != null ? a.incidence + '% sa sample' : esc(a.severity)})${sessLabel(a.session) ? ' ' + sessLabel(a.session) : ''}${photoList(a).length ? ' 📷' + photoList(a).length : ''}. Tan-awa ang 🐛 Peste report; himoa ang Spray Order kon kinahanglan gyud.`, tab:'pests'});
     });
     // pest monitoring
     if (['growing','harvesting'].includes(p.status)) {
@@ -1180,6 +1186,70 @@ function pestSaveSession(){
     <button class="bigbtn" onclick="closeModal()">OK</button></div>`);
 }
 
+
+/* =========================================================
+   📷 PICTURAN ANG UMA — field photo report (bisan kanus-a)
+   ========================================================= */
+const FP_TYPES = [['pest','🐛 Mananap'], ['dis','🍂 Sakit'], ['plant','🌱 Kahimtang sa tanom'], ['water','💧 Tubig / yuta'], ['other','📌 Uban pa']];
+let fp = null;
+function fieldPhoto(pid){
+  const ps = db.plantings.filter(p => p.status !== 'done' && (!myCaretaker() || p.caretakerId === myCaretaker()) && cropMatch(p));
+  const list = ps.length ? ps : db.plantings.filter(p => p.status !== 'done');
+  if (!list.length) { toast('Wala pay tanom'); return; }
+  fp = {pid: pid || (list.length === 1 ? list[0].id : ''), photos:[], type:'', pest:'', dis:'', note:''};
+  fpRender();
+}
+function fpRead(){ if (!fp) return; const n = document.getElementById('fp_note'); if (n) fp.note = n.value; const s2 = document.getElementById('fp_pid'); if (s2) fp.pid = s2.value; }
+function fpRender(){
+  const ps = db.plantings.filter(p => p.status !== 'done' && (!myCaretaker() || p.caretakerId === myCaretaker()));
+  const p = getP(fp.pid);
+  const pests = p ? (PESTS[p.crop] || PESTS.other).filter(n => !/^Sakit/.test(n)) : [];
+  const dis = p ? (DISEASES[p.crop] || DISEASES.other) : [];
+  modal('📷 Picturan ang uma', `
+    <label style="margin-top:0">🌱 Unsa nga tanom?<select id="fp_pid" class="big-select" onchange="fpRead();fp.pest='';fp.dis='';fpRender()">
+      <option value="">— Pilia ang tanom —</option>
+      ${ps.map(q => `<option value="${q.id}" ${fp.pid === q.id ? 'selected' : ''}>${crop(q).emoji} ${esc(pName(q))}${q.location ? ' · ' + esc(q.location) : ''}</option>`).join('')}</select></label>
+    ${p ? critBox(p, diffDays(p.datePlanted, today()), false) : ''}
+    <div class="fp-cams">
+      <label class="bigbtn orange">📷 CAMERA<input type="file" accept="image/*" capture="environment" style="display:none" onchange="fpAdd(this)"></label>
+      <label class="bigbtn ghost">🖼️ GALLERY<input type="file" accept="image/*" multiple style="display:none" onchange="fpAdd(this)"></label></div>
+    <div class="ps-thumbs">${fp.photos.map((id, i) => `<span class="fp-th"><img data-phid="${id}"><button onclick="fpRead();fp.photos.splice(${i},1);fpRender()">✕</button></span>`).join('')}</div>
+    <p class="hint">${fp.photos.length ? `${fp.photos.length} ka litrato. Pwede pa dugangan.` : 'Duol nga litrato sa mananap, sakit o problema. Pwede daghan.'}</p>
+    <h3>Unsa ni?</h3>
+    <div class="fp-types">${FP_TYPES.map(([k, l]) => `<button class="choice ${fp.type === k ? 'on' : ''}" onclick="fpRead();fp.type='${k}';fpRender()">${l}</button>`).join('')}</div>
+    ${fp.type === 'pest' && p ? `<h3>🐛 Unsa nga mananap?</h3><div class="wk-choices">${pests.map(n => `<button class="choice ${fp.pest === n ? 'on' : ''}" onclick="fpRead();fp.pest='${esc(n).replace(/'/g, '&#39;')}';fpRender()">${esc(n)}</button>`).join('')}</div>` : ''}
+    ${fp.type === 'dis' && p ? `<h3>🍂 Unsa nga sakit?</h3><div class="wk-choices">${dis.map(([n, h]) => `<button class="choice ${fp.dis === n ? 'on' : ''}" onclick="fpRead();fp.dis='${esc(n).replace(/'/g, '&#39;')}';fpRender()"><b>${esc(n)}</b><br><span class="small muted">${esc(h)}</span></button>`).join('')}
+      <button class="choice ${fp.dis === 'Wala ko kaila' ? 'on' : ''}" onclick="fpRead();fp.dis='Wala ko kaila';fpRender()">Wala ko kaila</button></div>` : ''}
+    <label>Nota (mubo lang, optional)<textarea id="fp_note" placeholder="hal. sa may sapa, laray 5">${esc(fp.note)}</textarea></label>
+    <button class="bigbtn" style="margin-top:12px" onclick="fpSave()">✅ I-SAVE</button>`);
+  loadThumbs();
+}
+async function fpAdd(input){
+  const files = [...(input.files || [])]; if (!files.length) return;
+  fpRead(); toast('Ginaandam ang litrato…');
+  for (const f of files) {
+    try { const blob = await compressImage(f); const id = 'ph_' + uid(); await photoPut(id, blob); fp.photos.push(id); }
+    catch(e) { toast('Dili ma-save: ' + e.message); }
+  }
+  fpRender(); toast(`📷 ${fp.photos.length} ka litrato`);
+}
+function fpSave(){
+  fpRead();
+  const p = getP(fp.pid);
+  if (!p) { toast('Pilia una ang tanom'); return; }
+  if (!fp.photos.length) { toast('Kuha una og litrato 📷'); return; }
+  if (!fp.type) { toast('Pilia kung unsa ni (mananap, sakit, ...)'); return; }
+  const dap = diffDays(p.datePlanted, today()), isPD = fp.type === 'pest' || fp.type === 'dis';
+  const label = (FP_TYPES.find(t => t[0] === fp.type) || [])[1] || '';
+  upsert('activities', {plantingId:p.id, date:today(), category: isPD ? 'pest_monitoring' : 'observation', field:true, fieldType:fp.type,
+    desc:'Litrato sa uma: ' + label.replace(/^\S+\s/, ''), pest: fp.type === 'pest' ? (fp.pest || 'Wala ko kaila') : '', pestFound: fp.type === 'pest',
+    disease: fp.type === 'dis' ? (fp.dis || 'Wala ko kaila') : '', diseaseFound: fp.type === 'dis', severity: isPD ? 'Low' : 'None',
+    photos:fp.photos.map(id => ({id})), notes:fp.note, stage:cropStage(p, dap), crit:(critNow(p, dap) || {}).name || null,
+    session: new Date().getHours() < 12 ? 'am' : 'pm', doneAt:new Date().toISOString(), by:isWorker() ? 'trabahante' : 'admin', cost:0});
+  fp = null; closeModal(); render();
+  toast(isPD ? '✅ Na-save — makita sa manager (🐛 Peste report)' : '✅ Na-save ang litrato');
+}
+
 /* ---------- Photos: blob getter + thumbnails ---------- */
 async function getPhotoBlob(id, path){
   let blob = await photoGet(id).catch(() => null);
@@ -1210,7 +1280,7 @@ async function showPhoto(actId, idx = 0){
   const ph = list[idx], p = getP(a.plantingId);
   const sm = (a.samples || []).find(s => (s.photos || []).includes(ph.id));
   modal(`📷 ${idx + 1}/${list.length}`, `<div id="ph_box"><p class="muted">Ginakuha ang litrato…</p></div>
-    <p class="small">${p ? esc(pName(p)) + ' · ' : ''}${fmtD(a.date)} ${sessLabel(a.session)}${a.stage ? ' · Stage: ' + esc(a.stage) : ''}${sm ? `<br>🌱 Tanom #${sm.n}: ${sm.pest ? `🐛 <b>${esc(sm.pest)}</b> (${esc(sm.count)} ka mananap)` : ''} ${sm.dis ? `🍂 <b>${esc(sm.dis)}</b>` : ''}` : a.pest ? '<br>' + esc(a.pest) : ''}</p>
+    <p class="small">${p ? esc(pName(p)) + ' · ' : ''}${fmtD(a.date)} ${sessLabel(a.session)}${a.stage ? ' · Stage: ' + esc(a.stage) : ''}${a.field ? `<br>📷 ${esc((FP_TYPES.find(t => t[0] === a.fieldType) || [])[1] || '')} ${a.pest ? '— ' + esc(a.pest) : ''}${a.disease ? '— 🍂 ' + esc(a.disease) : ''}${a.notes ? '<br>📝 ' + esc(a.notes) : ''}` : ''}${sm ? `<br>🌱 Tanom #${sm.n}: ${sm.pest ? `🐛 <b>${esc(sm.pest)}</b> (${esc(sm.count)} ka mananap)` : ''} ${sm.dis ? `🍂 <b>${esc(sm.dis)}</b>` : ''}` : a.pest ? '<br>' + esc(a.pest) : ''}</p>
     ${list.length > 1 ? `<div class="btnrow"><button class="btn sm ghost" onclick="showPhoto('${a.id}',${idx - 1})">← Una</button><button class="btn sm ghost" onclick="showPhoto('${a.id}',${idx + 1})">Sunod →</button></div>` : ''}`);
   try {
     const blob = await getPhotoBlob(ph.id, ph.path);
@@ -1223,6 +1293,8 @@ function pestReportHtml(p){
   const t = today(), dap = diffDays(p.datePlanted, t);
   const recs = db.activities.filter(a => a.plantingId === p.id && a.category === 'pest_monitoring').sort((a, b) => (b.date + (b.doneAt || '')).localeCompare(a.date + (a.doneAt || '')));
   const since = addDays(t, -13), recent = recs.filter(a => a.date >= since);
+  const obs = db.activities.filter(a => a.plantingId === p.id && a.category === 'observation' && a.date >= since);
+  const fieldN = recent.filter(a => a.field).length + obs.length;
   const cell = a => {
     if (!a) return '<span class="muted">—</span>';
     if (a.help) return '🆘';
@@ -1236,7 +1308,8 @@ function pestReportHtml(p){
   for (let i = 0; i < 14; i++) { const d = addDays(t, -i); const rs = recent.filter(a => a.date === d); if (rs.length || i < 3) days.push([d, rs]); }
   const table = `<table class="tbl pr-tbl"><tr><td><b>Petsa</b></td><td><b>🌅 Buntag</b></td><td><b>🌇 Hapon</b></td><td><b>Mananap</b></td></tr>
     ${days.map(([d, rs]) => {
-      const am = rs.find(a => a.session === 'am') || rs.find(a => !a.session), pm = rs.find(a => a.session === 'pm');
+      const rsS = rs.filter(a => !a.field);
+      const am = rsS.find(a => a.session === 'am') || rsS.find(a => !a.session), pm = rsS.find(a => a.session === 'pm');
       const names = [...new Set(rs.filter(a => a.pest).flatMap(a => a.pest.split(', ')).concat(rs.filter(a => a.disease).flatMap(a => a.disease.split(', ').map(d => '🍂' + d))))].join(', ');
       return `<tr><td>${fmtD(d).replace(/, \d{4}$/, '')}<br><span class="small muted">Day ${diffDays(p.datePlanted, d)}</span></td><td>${cell(am)}</td><td>${cell(pm)}</td><td class="small">${esc(names) || ''}</td></tr>`;
     }).join('')}</table>`;
@@ -1247,7 +1320,7 @@ function pestReportHtml(p){
   recent.filter(a => a.pestFound && !(a.samples || []).length && a.pest).forEach(a => a.pest.split(', ').forEach(k => { agg[k] = agg[k] || {n:0, max:0, last:'', checks:new Set()}; agg[k].checks.add(a.id); agg[k].last = agg[k].last > a.date ? agg[k].last : a.date; }));
   const top = Object.entries(agg).sort((a, b) => b[1].checks.size - a[1].checks.size);
   // Litrato
-  const pics = recent.flatMap(a => photoList(a).map((ph, i) => ({a, ph, i}))).slice(0, 24);
+  const pics = [...recent, ...obs].sort((a, b) => (b.doneAt || b.date).localeCompare(a.doneAt || a.date)).flatMap(a => photoList(a).map((ph, i) => ({a, ph, i}))).slice(0, 30);
   // Mga spray nga nagamit na
   const sprays = db.activities.filter(a => a.plantingId === p.id && a.category === 'pesticide').sort((a, b) => b.date.localeCompare(a.date));
   const lastAis = sprays.slice(0, 2).map(a => (a.ai || '').trim().toLowerCase()).filter(Boolean);
@@ -1260,8 +1333,10 @@ function pestReportHtml(p){
     <h3>📅 Buntag ug hapon (14 ka adlaw)</h3><div class="card" style="overflow-x:auto">${table}
       <p class="small muted" style="margin:6px 0 0">% = pila ka sample nga tanom ang naay mananap. Pindota ang 📷 aron makita ang litrato.</p></div>
     ${top.length ? `<h3>🐛🍂 Mga mananap ug sakit nga nakita</h3><div class="card">${top.map(([k, v2]) => `<div class="rowi" style="cursor:default"><span class="ic">🐛</span><div class="grow"><b>${esc(k)}</b><div class="small muted">${v2.checks.size} ka check · katapusan ${fmtD(v2.last)}${v2.max ? ` · pinakataas ${v2.max}%` : ''}</div></div></div>`).join('')}</div>` : ''}
-    ${pics.length ? `<h3>📷 Mga litrato</h3><div class="ps-gallery">${pics.map(({a, ph, i}) => { const sm = (a.samples || []).find(s => (s.photos || []).includes(ph.id));
-      return `<figure onclick="showPhoto('${a.id}',${i})"><img data-phid="${ph.id}" alt=""><figcaption>${fmtD(a.date).replace(/, \d{4}$/, '')} ${a.session === 'pm' ? '🌇' : a.session === 'am' ? '🌅' : ''}${sm ? '<br>' + esc([sm.pest && sm.pest.split(' (')[0], sm.dis && '🍂' + sm.dis].filter(Boolean).join(' · ')) : ''}</figcaption></figure>`; }).join('')}</div>` : ''}
+    <div class="btnrow"><button class="btn" onclick="fieldPhoto('${p.id}')">📷 Picturan ang uma</button></div>
+    ${pics.length ? `<h3>📷 Mga litrato${fieldN ? ` <span class="small muted">(${fieldN} gikan sa "Picturan ang uma")</span>` : ''}</h3><div class="ps-gallery">${pics.map(({a, ph, i}) => { const sm = (a.samples || []).find(s => (s.photos || []).includes(ph.id));
+      const cap = sm ? [sm.pest && sm.pest.split(' (')[0], sm.dis && '🍂' + sm.dis].filter(Boolean).join(' · ') : a.field ? [a.pest && a.pest.split(' (')[0], a.disease && '🍂' + a.disease, !a.pest && !a.disease && (FP_TYPES.find(t => t[0] === a.fieldType) || [])[1]].filter(Boolean).join(' · ') : '';
+      return `<figure onclick="showPhoto('${a.id}',${i})"><img data-phid="${ph.id}" alt=""><figcaption>${fmtD(a.date).replace(/, \d{4}$/, '')} ${a.session === 'pm' ? '🌇' : a.session === 'am' ? '🌅' : ''}${a.field ? ' 📷' : ''}${cap ? '<br>' + esc(cap) : ''}</figcaption></figure>`; }).join('')}</div>` : ''}
     <h3>🧴 Mga spray nga nagamit na</h3>
     <div class="card">${sprays.length ? sprays.slice(0, 8).map(a => `<div class="rowi" onclick="actForm('${a.id}')"><span class="ic">💧</span><div class="grow"><b>${esc(a.item || 'Spray')}</b>${a.ai ? ` <span class="small">(${esc(a.ai)})</span>` : ''}
         <div class="small muted">${fmtD(a.date)}${a.target ? ' · ' + esc(a.target) : ''}${a.phi ? ' · PHI ' + a.phi + 'd' : ''}</div></div></div>`).join('') : '<div class="empty">Wala pay spray.</div>'}
@@ -1369,6 +1444,7 @@ function wkCard(x){
       <p class="small"><b>Kon naay mananap: PICTURAN</b> aron makadesisyon ang manager unsa nga hilo.</p>`;
     btns = `<button class="bigbtn" onclick="wkPestNone('${x.key}')">✅ WALAY MANANAP UG SAKIT</button>
       <button class="bigbtn orange" onclick="wkPestFound('${x.key}')">🐛🍂 NAAY MANANAP O SAKIT — PICTURAN</button>
+      <button class="bigbtn ghost" onclick="fieldPhoto('${x.p.id}')">📷 LITRATO RA (dili sample)</button>
       <button class="bigbtn red" onclick="wkPestHelp('${x.key}')">🆘 KINAHANGLANG TABANG</button>`;
   } else if (x.kind === 'spray') {
     const o = x.order;
@@ -1417,7 +1493,7 @@ function viewWork(){
   const items = workItems(), t = today();
   const now = items.filter(x => (x.status === 'todo' || x.status === 'wait') && x.due <= t);
   const nextItems = items.filter(x => x.status === 'next');
-  const doneRecs = db.activities.filter(a => a.taskKey && a.doneAt && diffDays(a.date, t) <= 14).sort((a,b) => (b.doneAt||'').localeCompare(a.doneAt||''));
+  const doneRecs = db.activities.filter(a => (a.taskKey || a.field) && a.doneAt && diffDays(a.date, t) <= 14).sort((a,b) => (b.doneAt||'').localeCompare(a.doneAt||''));
   const tab = state.wtab || 'karon';
   const meCt = isWorker() ? ctById(cfg().caretakerId) : null;
   const showShareTab = meCt && farmSet().showShare !== false;
@@ -1449,15 +1525,16 @@ function viewWork(){
           <div class="small" style="text-align:center">${p.sharePaid ? `✅ Nabayran na ${money(p.sharePaid.amount)} (${fmtD(p.sharePaid.date)})` : 'Imong parte (gibanabana)'}</div></div>`; }).join('') || '<div class="wk-empty">Wala pay tanom nga naka-assign kanimo.</div>');
   } else {
     body = doneRecs.filter(a => { const pp = getP(a.plantingId); return pp && (!myCaretaker() || pp.caretakerId === myCaretaker()) && cropMatch(pp); }).map(a => {
-      const p = getP(a.plantingId), k = KIND_INFO[a.taskType] || KIND_INFO.task;
-      const ok = a.outcome === 'done' || (a.taskType === 'water' && DONE_REASONS.includes(a.reason));
-      const what = a.taskType === 'pest' ? `${sessLabel(a.session)} ` + (a.pestFound ? `🐛 ${esc(a.pest)} (${a.incidence != null ? a.incidence + '%' : esc(a.severity)})` : a.help ? '🆘 NANGAYO OG TABANG' : 'Walay mananap')
+      const p = getP(a.plantingId), k = a.field ? {icon:'📷', title:'LITRATO SA UMA'} : KIND_INFO[a.taskType] || KIND_INFO.task;
+      const ok = a.field || a.outcome === 'done' || (a.taskType === 'water' && DONE_REASONS.includes(a.reason));
+      const what = a.field ? `${esc((FP_TYPES.find(x => x[0] === a.fieldType) || [])[1] || '')}${a.pest ? ': ' + esc(a.pest) : ''}${a.disease ? ': ' + esc(a.disease) : ''}${a.notes ? ' — ' + esc(a.notes) : ''}`
+        : a.taskType === 'pest' ? `${sessLabel(a.session)} ` + (a.pestFound ? `🐛 ${esc(a.pest)} (${a.incidence != null ? a.incidence + '%' : esc(a.severity)})` : a.help ? '🆘 NANGAYO OG TABANG' : 'Walay mananap')
         : a.taskType === 'water' ? (a.outcome === 'done' ? 'Napatubigan' : esc(a.reason)) : a.outcome === 'done' ? esc(a.desc) : `${esc(a.desc)} — ${esc(a.reason || '')}`;
       return `<div class="wk-row"><span class="wk-icon sm">${ok ? '🟢' : '🟡'}</span><div class="grow"><b>${k.icon} ${a.taskType === 'task' ? esc(a.desc) : k.title}</b>
         <div class="small">${what}</div>
         <div class="small muted">${p ? crop(p).emoji + ' ' + esc(pName(p)) : ''} · ${timeStr(a.doneAt)}${a.by ? ' · ' + esc(a.by) : ''}</div></div>
         ${photoList(a).length ? `<button class="btn sm ghost" onclick="showPhoto('${a.id}')">📷${photoList(a).length > 1 ? photoList(a).length : ''}</button>` : ''}
-        ${!isWorker() || a.date === t ? `<button class="btn sm ghost" onclick="wkUndo('${esc(a.taskKey)}')">↩︎</button>` : ''}</div>`;
+        ${!isWorker() || a.date === t ? (a.field ? `<button class="btn sm ghost" onclick="if(confirm('Panason kini nga litrato?')){removeRec('activities','${a.id}');save();render()}">🗑</button>` : `<button class="btn sm ghost" onclick="wkUndo('${esc(a.taskKey)}')">↩︎</button>`) : ''}</div>`;
     }).join('') || '<div class="wk-empty">Wala pay nahuman nga trabaho sa miaging 14 ka adlaw.</div>';
   }
   const cts = caretakers();
@@ -1487,6 +1564,7 @@ function viewWork(){
   const chips = ctSel || cropSel ? `<div class="wk-sels">${ctSel}${cropSel}</div>` : '';
   return `<div class="wk-top"><div class="wk-h1">TRABAHO KARONG ADLAWA</div><div class="wk-date">${parseD(t).toLocaleDateString('en-PH', {weekday:'long', month:'long', day:'numeric', year:'numeric'})}</div>
     ${meCt ? `<div class="wk-me">👤 ${esc(meCt.name)}</div>` : ''}</div>
+    <button class="bigbtn orange fp-main" onclick="fieldPhoto()">📷 PICTURAN ANG UMA</button>
     ${(!isWorker() && Object.keys(orphanCts()).length ? `<div class="alert warn" onclick="ctForm()" style="cursor:pointer"><div>⚠️ <b>${Object.keys(orphanCts()).length} ka sinaligan ang nawala ang ngalan</b> pero naa pa ang ilang tanom. <u>Pindota diri</u> aron ibalik.</div></div>` : '')}
     ${chips}
     <div class="wk-tabs${showShareTab || !isWorker() ? ' four' : ''}">
@@ -2539,6 +2617,7 @@ function addMenu(){
   const pid = state.view === 'planting' ? state.pid : '';
   const pre = pid ? `{plantingId:'${pid}'}` : '{}';
   modal('Ano ang idugang?', `<div class="menu">
+    <button onclick="closeModal();fieldPhoto(${pid ? `'${pid}'` : ''})"><span class="emoji">📷</span>Picturan ang uma (litrato)</button>
     <button onclick="closeModal();plantingForm()"><span class="emoji">🌱</span>Bag-o nga Tanom</button>
     <button onclick="closeModal();actForm(null,${pre})"><span class="emoji">💸</span>Gasto / Activity</button>
     <button onclick="closeModal();actForm(null,Object.assign(${pre},{category:'pest_monitoring'}))"><span class="emoji">🔍</span>Pest Monitoring</button>

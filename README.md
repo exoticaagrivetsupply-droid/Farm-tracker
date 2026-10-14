@@ -28,6 +28,12 @@ Ablihi ang app ug sundon lang ang makita:
 - Ang hilo: ang manager ra (uban ang technician) ang modesisyon, gamit ang produkto nga **rehistrado sa FPA**. Walay automatic nga spray.
 - Kon gusto nga dili kada adlaw: Crop Schedule → Pest check → "Kada pila ka adlaw".
 
+## 📷 Picturan ang uma (bisan kanus-a)
+- Dako nga button nga **📷 PICTURAN ANG UMA** sa ibabaw sa ✅ Trabaho (para sa admin ug sa taho), sa ➕ menu, ug sa 🐛 Peste tab sa tanom.
+- Pilia ang tanom → **📷 CAMERA** o **🖼️ GALLERY** (pwede daghan) → unsa ni: 🐛 Mananap / 🍂 Sakit (uban ang sintomas) / 🌱 Kahimtang sa tanom / 💧 Tubig-yuta / 📌 Uban → nota → **I-SAVE**.
+- Makita sa **🐛 Peste report** (gallery) ug sa 🟢 NAHUMAN NA. Kon mananap o sakit, naay **alert** sa Dashboard.
+- Bulag kini sa sample check sa buntag ug hapon. Kini para sa bisan unsa nga makita sa uma.
+
 ## ⚠️ Kritikal nga stage ug 🍂 sakit
 - Ang matag crop naay **kritikal nga stage** (pananglitan sa mais: Pagtubo, Whorl, **Tasseling/Silking**, Pagpuno sa dalumpit), uban ang **mananap ug sakit nga bantayan** ug unsay tan-awon.
 - Sa pest check sa trabahante: dalag nga kahon nga **⚠️ KRITIKAL NGA STAGE**, ug "Unsaon pag-ila sa sakit?" (mga sintomas).
