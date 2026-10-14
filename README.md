@@ -18,6 +18,8 @@ Ablihi ang app ug sundon lang ang makita:
 | 🐛 CHECK SA PESTE | WALAY PESTE · NAAY PESTE (pilia ang peste, pila ka tanom, litrato) · KINAHANGLANG TABANG |
 | 🧴 PAG-SPRAY | Mogawas lang kon naghimo ang admin og **Spray Order**. |
 
+**Selector sa ibabaw sa TRABAHO:** "👤 Kinsa nga taho?" (admin ra) ug "🌱 Unsa nga tanom?". Ang listahan sa tanom mosunod sa napili nga taho, ug kon daghan ang batch (pananglitan 2 ka Sweet Corn), mapili ang matag usa. Makita usab pila ang buhaton sa matag pilianan.
+
 ## 👷 I-set ang cellphone sa trabahante
 1. I-setup una ang **GitHub Sync** sa iyang cellphone (Settings).
 2. Settings → **👷 Himoa kini nga cellphone para sa trabahante** → ibutang ang Admin PIN.
@@ -53,7 +55,16 @@ Pananglitan: Benta ₱100,000 − Agente ₱10,000 − Gasto ₱20,000 − Gener
 **Pagtan-aw:** sa ibabaw sa 💰 Partehanay naay **"Kinsa ang lantawon?"**: Tanan (summary), matag sinaligan, Walay sinaligan, o Agente. Sa matag sinaligan naay filter nga Aktibo / Tapos na, ug makita ang "Kulang pa bayran".
 **Pagbayad sa sinaligan:** 💰 Partehanay → "💵 Markahi nga nabayran na". Kon mausab ang records human sa pagbayad, ipakita sa app ang kulang o sobra.
 
-## 🎯 Target sa Produksyon
+## 💵 BUDGET (plano sa trabahante ug gasto)
+Sa **✅ Trabaho → 💵 BUDGET** (admin ra). Mosunod kini sa selector sa taho ug tanom. Pilia ang **7 / 14 / 30 ka adlaw o hangtod harvest**.
+- **👷 Pila ka trabahante** sa matag trabaho = man-days kada hectare × area. Pananglitan: gabot sa sagbot 15 × 0.5 ha = 8 ka tawo.
+- **Bayad** = tawo × sweldo kada adlaw (💰 Partehanay → ⚙️ Sinaligan → sweldo).
+- **Materyales**: abono (kg ug sako gikan sa dosage × area × presyo kada sako), spray (produkto ug banabana nga gasto sa Spray Order), binhi para sa plano nga tanom (gikan sa calculator, kanus-a paliton).
+- **Total nga budget**, ang **adlaw nga pinakadaghan og tawo**, listahan sa **materyales nga andamon**, ug matag adlaw.
+- Ang trabaho sa sinaligan (patubig, pest check, spray) walay bayad sa trabahante.
+
+**Usba ang banabana**: ⚙️ Settings → Crop Schedule → matag trabaho: "Trabahante kada hectare", "Ubang gasto kada hectare" (tractor, krudo), ug "Presyo kada sako" sa abono. Human sa mga DONE nga naay "Pila ka trabahante", makita ang **aktwal kaniadto** aron mas sakto ang sunod nga plano.
+
 Sa **Edit Tanom → 🎯 Target sa Produksyon**:
 - **Tanom nga mabuhi**: gikan sa calculator (binhi × germination).
 - **Ani kada tanom** × **% nga mabaligya** = **target nga ani**. Default nga banabana: mais 1 ka dalumpit, kalabasa 4 kg, broccoli 0.3 kg, repolyo 1 kg, sibuyas dahon 0.1 kg, kamatis 2 kg kada tanom. Usba base sa inyong experience.

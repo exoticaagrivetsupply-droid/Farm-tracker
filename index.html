@@ -140,6 +140,12 @@ body.worker main{padding-bottom:40px}
 .labor-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.labor-grid .bigbtn{font-size:24px;padding:14px 0}
 .sh-card .tbl td{font-size:14px}
 .big-select{font-size:18px;font-weight:700;padding:14px;border:2px solid var(--green);background:#fff}
+.wk-sels{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 12px}.wk-sels .wk-sel{margin:0;font-weight:700;color:var(--ink)}
+.wk-sels .wk-sel:only-child{grid-column:1/-1}
+@media(max-width:560px){.wk-sels{grid-template-columns:1fr}}
+.bd-row{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}.bd-row:last-child{border-bottom:0}
+.bd-row.late{background:#fff5f4}.bd-amt{font-weight:800;white-space:nowrap;text-align:right}
+.wk-tabs.four button{font-size:12px}
 @media print{header,nav,.fab,.btnrow,.tabs{display:none}main{padding:0}}
 </style>
 </head>
@@ -554,6 +560,11 @@ function farmSet(){
   return out;
 }
 const isWorker = () => cfg().role === 'worker';
+/* Filter sa commodity: 'crop:<crop>' o 'p:<plantingId>' */
+function cropMatch(p){
+  const f = state.cropFilter; if (!f) return true;
+  return f.startsWith('p:') ? p.id === f.slice(2) : p.crop === f.slice(5);
+}
 /* Kinsa nga sinaligan ang gitan-aw: worker phone = iyang kaugalingon; admin = filter */
 const myCaretaker = () => isWorker() ? (cfg().caretakerId && ctById(cfg().caretakerId) ? cfg().caretakerId : null) : (state.ctFilter || null);
 
@@ -643,10 +654,10 @@ function recStatus(rec){
   return 'wait';
 }
 /* Returns all task instances from (today-21) to (today+7) */
-function workItems(){
+function workItems(opts = {}){
   const t = today(), horizon = addDays(t, 7), items = [];
   const ctF = myCaretaker();
-  const mine = p => !ctF || p.caretakerId === ctF;
+  const mine = p => (!ctF || p.caretakerId === ctF) && (opts.noCrop || cropMatch(p));
   for (const p of db.plantings) {
     if (p.status === 'done' || !p.datePlanted || !mine(p)) continue;
     const dap = diffDays(p.datePlanted, t), tpl = getTpl(p.crop), o = tpl.opts;
@@ -1003,6 +1014,8 @@ function viewWork(){
       return `<div class="wk-row"><span class="wk-icon sm">${k.icon}</span><div class="grow"><b>${x.kind === 'task' || (x.kind !== 'water' && x.key.includes(':t:')) ? esc(x.label) : k.title}</b>
         <div class="small muted">${crop(x.p).emoji} ${esc(pName(x.p))} · Day ${diffDays(x.p.datePlanted, d)}</div></div></div>`; }).join('')).join('')
       || '<div class="wk-empty">Walay naka-schedule sa sunod nga 7 ka adlaw.</div>';
+  } else if (tab === 'budget' && !isWorker()) {
+    body = viewBudget();
   } else if (tab === 'parte' && showShareTab) {
     const ps = db.plantings.filter(p => p.caretakerId === meCt.id);
     body = `<div class="card small">Ang imong parte: <b>${fmtN(meCt.pct ?? DEFAULT_CT_PCT, 1)}% sa NET</b> sa imong area.<br>NET = Benta − Agente − Tanang gasto. Gibanabana pa ni hangtod mahuman ang harvest.</div>` +
@@ -1013,7 +1026,7 @@ function viewWork(){
           <div class="wk-amt" style="text-align:center">💰 ${money(s2.ctShare)}</div>
           <div class="small" style="text-align:center">${p.sharePaid ? `✅ Nabayran na ${money(p.sharePaid.amount)} (${fmtD(p.sharePaid.date)})` : 'Imong parte (gibanabana)'}</div></div>`; }).join('') || '<div class="wk-empty">Wala pay tanom nga naka-assign kanimo.</div>');
   } else {
-    body = doneRecs.filter(a => { const pp = getP(a.plantingId); return !myCaretaker() || (pp && pp.caretakerId === myCaretaker()); }).map(a => {
+    body = doneRecs.filter(a => { const pp = getP(a.plantingId); return pp && (!myCaretaker() || pp.caretakerId === myCaretaker()) && cropMatch(pp); }).map(a => {
       const p = getP(a.plantingId), k = KIND_INFO[a.taskType] || KIND_INFO.task;
       const ok = a.outcome === 'done' || (a.taskType === 'water' && DONE_REASONS.includes(a.reason));
       const what = a.taskType === 'pest' ? (a.pestFound ? `🐛 NAAY PESTE: ${esc(a.pest)} (${esc(a.severity)})` : a.help ? '🆘 NANGAYO OG TABANG' : 'Walay peste')
@@ -1026,17 +1039,40 @@ function viewWork(){
     }).join('') || '<div class="wk-empty">Wala pay nahuman nga trabaho sa miaging 14 ka adlaw.</div>';
   }
   const cts = caretakers();
-  const chips = !isWorker() && cts.length ? `<div class="tabs" style="margin:0 0 10px">${[[null,'👥 Tanan'], ...cts.map(c => [c.id, '👤 ' + esc(c.name)])].map(([id, l]) =>
-    `<button class="${(state.ctFilter || null) === id ? 'on' : ''}" onclick="state.ctFilter=${id ? `'${id}'` : 'null'};render()">${l}</button>`).join('')}</div>` : '';
+  // --- Selectors: taho (sinaligan) ug commodity ---
+  const ctF = myCaretaker();
+  const activePs = db.plantings.filter(p => p.status !== 'done' && p.datePlanted && (!ctF || p.caretakerId === ctF));
+  const allItems = workItems({noCrop:true});
+  const todoOf = fn => allItems.filter(x => x.status === 'todo' && x.due <= t && fn(x.p)).length;
+  const cnt = n => n ? ` — ${n} buhaton` : '';
+  const byCrop = {};
+  activePs.forEach(p => (byCrop[p.crop] = byCrop[p.crop] || []).push(p));
+  const cropOpts = [];
+  Object.keys(byCrop).sort((a, b) => (CROPS[a] || CROPS.other).name.localeCompare((CROPS[b] || CROPS.other).name)).forEach(k => {
+    const c = CROPS[k] || CROPS.other, ps = byCrop[k];
+    cropOpts.push([`crop:${k}`, `${c.emoji} ${c.name.split(' (')[0]} (${ps.length})${cnt(todoOf(p => p.crop === k))}`]);
+    if (ps.length > 1) ps.forEach(p => cropOpts.push([`p:${p.id}`, `      ↳ ${pName(p)}${p.location ? ' · ' + p.location : ''}${cnt(todoOf(q => q.id === p.id))}`]));
+  });
+  if (state.cropFilter && !cropOpts.some(o => o[0] === state.cropFilter)) { state.cropFilter = null; return viewWork(); }
+  const ctSel = !isWorker() && cts.length ? `<label class="wk-sel">👤 Kinsa nga taho?<select class="big-select" onchange="state.ctFilter=this.value||null;state.cropFilter=null;render()">
+      <option value="">👥 Tanan nga taho${cnt(todoOf(() => true))}</option>
+      ${cts.map(c => `<option value="${c.id}" ${state.ctFilter === c.id ? 'selected' : ''}>👤 ${esc(c.name)}${cnt(todoOf(p => p.caretakerId === c.id))}</option>`).join('')}
+    </select></label>` : '';
+  const cropSel = cropOpts.length > 1 ? `<label class="wk-sel">🌱 Unsa nga tanom?<select class="big-select" onchange="state.cropFilter=this.value||null;render()">
+      <option value="">🌱 Tanan nga tanom (${activePs.length})</option>
+      ${cropOpts.map(([k, l]) => `<option value="${k}" ${state.cropFilter === k ? 'selected' : ''}>${esc(l)}</option>`).join('')}
+    </select></label>` : '';
+  const chips = ctSel || cropSel ? `<div class="wk-sels">${ctSel}${cropSel}</div>` : '';
   return `<div class="wk-top"><div class="wk-h1">TRABAHO KARONG ADLAWA</div><div class="wk-date">${parseD(t).toLocaleDateString('en-PH', {weekday:'long', month:'long', day:'numeric', year:'numeric'})}</div>
     ${meCt ? `<div class="wk-me">👤 ${esc(meCt.name)}</div>` : ''}</div>
     ${(!isWorker() && Object.keys(orphanCts()).length ? `<div class="alert warn" onclick="ctForm()" style="cursor:pointer"><div>⚠️ <b>${Object.keys(orphanCts()).length} ka sinaligan ang nawala ang ngalan</b> pero naa pa ang ilang tanom. <u>Pindota diri</u> aron ibalik.</div></div>` : '')}
     ${chips}
-    <div class="wk-tabs${showShareTab ? ' four' : ''}">
+    <div class="wk-tabs${showShareTab || !isWorker() ? ' four' : ''}">
       <button class="${tab==='karon'?'on':''}" onclick="state.wtab='karon';render()">🔴 KARON${todo ? ` (${todo})` : ''}</button>
       <button class="${tab==='sunod'?'on':''}" onclick="state.wtab='sunod';render()">📅 SUNOD</button>
       <button class="${tab==='nahuman'?'on':''}" onclick="state.wtab='nahuman';render()">🟢 NAHUMAN NA</button>
-      ${showShareTab ? `<button class="${tab==='parte'?'on':''}" onclick="state.wtab='parte';render()">💰 PARTE</button>` : ''}</div>
+      ${showShareTab ? `<button class="${tab==='parte'?'on':''}" onclick="state.wtab='parte';render()">💰 PARTE</button>` : ''}
+      ${!isWorker() ? `<button class="${tab==='budget'?'on':''}" onclick="state.wtab='budget';render()">💵 BUDGET</button>` : ''}</div>
     ${body}
     ${!isWorker() ? `<div class="btnrow" style="justify-content:center;margin-top:18px"><button class="btn sm ghost" onclick="shareTasks()">📤 I-share ang trabaho sa trabahante</button></div>` : ''}`;
 }
@@ -1094,6 +1130,7 @@ function orderForm(id, preset = {}){
     <label>Pila ka tangke para sa area<input type="number" step="any" inputmode="decimal" id="f_tanks" value="${o.tanks??''}"></label>
     <div class="row2"><label>PHI (adlaw, sa label)<input type="number" inputmode="numeric" id="f_phi" value="${o.phi??''}"></label>
     <label>REI (oras, sa label)<input type="number" inputmode="numeric" id="f_rei" value="${o.rei??''}"></label></div>
+    <label>Banabana nga gasto sa produkto (₱, para sa budget)<input type="number" step="any" inputmode="decimal" id="f_ocost" value="${o.cost ?? ''}"></label>
     <label>Nota para sa trabahante<textarea id="f_notes">${esc(o.notes||'')}</textarea></label>
     ${id ? `<label class="check"><input type="checkbox" id="f_cancel" ${o.cancelled ? 'checked' : ''}> I-cancel kini nga spray order</label>` : ''}
     <datalist id="doseunits"><option>mL</option><option>g</option><option>tbsp</option></datalist>`,
@@ -1103,7 +1140,7 @@ function orderForm(id, preset = {}){
     if (num('f_phi') == null) { toast('Ibutang ang PHI gikan sa label (0 kon walay PHI)'); return false; }
     Object.assign(o, {plantingId:v('f_pid'), date:v('f_date'), target:v('f_target').trim(), product:v('f_product').trim(), ai:v('f_ai').trim(),
       fpa:v('f_fpa').trim(), doseText:v('f_doseText').trim(), dose:num('f_dose'), doseUnit:v('f_doseUnit').trim(), tankL:num('f_tankL'),
-      tanks:num('f_tanks'), phi:num('f_phi'), rei:num('f_rei'), notes:v('f_notes'), cancelled: id ? $('#f_cancel').checked : false});
+      tanks:num('f_tanks'), phi:num('f_phi'), rei:num('f_rei'), notes:v('f_notes'), cost:num('f_ocost'), cancelled: id ? $('#f_cancel').checked : false});
     upsert('orders', o); toast('Na-save ang spray order');
   },
   id ? () => removeRec('orders', id) : null);
@@ -1125,7 +1162,8 @@ function tplRead(){
     const off = g('off').value.trim();
     t.off = off.toUpperCase() === 'H' ? 'H' : (parseInt(off, 10) || 0);
     t.cat = g('cat').value; t.label = g('label').value; t.how = g('how').value; t.who = g('who') ? (g('who').value || null) : t.who;
-    t.fert = (t.fert || []).map((l, j) => ({name:v(`tf_name_${i}_${j}`), rate:parseFloat(v(`tf_rate_${i}_${j}`)) || null, unit:v(`tf_unit_${i}_${j}`), src:v(`tf_src_${i}_${j}`)}));
+    t.fert = (t.fert || []).map((l, j) => ({name:v(`tf_name_${i}_${j}`), rate:parseFloat(v(`tf_rate_${i}_${j}`)) || null, unit:v(`tf_unit_${i}_${j}`), src:v(`tf_src_${i}_${j}`), bagPrice:parseFloat(v(`tf_price_${i}_${j}`)) || null}));
+    if (g('md')) { const mv = g('md').value.trim(); t.md = mv === '' ? null : parseFloat(mv); t.other = parseFloat(g('other').value) || null; t.otherNote = g('onote').value.trim(); }
   });
   ['waterYoung','waterOld','pestEvery','pestEarly','pestEarlyUntil','waterCritFrom','waterCritTo'].forEach(k => { const el = document.getElementById('to_' + k); if (el) tplEdit.opts[k] = el.value === '' ? null : parseFloat(el.value); });
 }
@@ -1140,12 +1178,17 @@ function tplRender(){
     <label>Kinsa ang mobuhat<select id="tp_who_${i}"><option value="">Awtomatiko (${CT_CATS.includes(t.cat) ? 'sinaligan' : 'bayaran'})</option>
       <option value="ct" ${t.who==='ct'?'selected':''}>👤 Sinaligan (walay dugang bayad)</option><option value="paid" ${t.who==='paid'?'selected':''}>💰 Bayaran nga trabahante</option></select></label>
     <label>Instruksyon (simple nga Bisaya)<textarea id="tp_how_${i}">${esc(t.how)}</textarea></label>
+    <div class="row3"><label>👷 Trabahante kada hectare (man-days/ha)<input type="number" step="any" inputmode="decimal" id="tp_md_${i}" value="${t.md ?? ''}" placeholder="${defaultMd(t)} (banabana)"></label>
+    <label>⚙️ Ubang gasto kada hectare (₱)<input type="number" step="any" inputmode="decimal" id="tp_other_${i}" value="${t.other ?? ''}"></label>
+    <label>Unsa (hal. tractor, krudo)<input id="tp_onote_${i}" value="${esc(t.otherNote || '')}"></label></div>
+    ${(() => { const a = actualMd(e.crop, t.id); return a ? `<p class="hint">Aktwal gikan sa niaging DONE: ${fmtN(a, 1)} man-days/ha</p>` : ''; })()}
     ${t.cat === 'fertilizer' ? `<h3>🧪 Abono ug dosage</h3><p class="hint">Ibutang base sa soil test o rekomendasyon sa DA/technician. Ang app mo-compute sa total kg base sa area sa matag tanom.</p>
       ${(t.fert || []).map((l, j) => `<div class="card" style="background:var(--green2)">
         <div class="row2"><label>Abono<input id="tf_name_${i}_${j}" value="${esc(l.name||'')}" placeholder="hal. Urea 46-0-0"></label>
         <label>Basehan<input id="tf_src_${i}_${j}" value="${esc(l.src||'')}" placeholder="hal. soil test 2026"></label></div>
         <div class="row2"><label>Rate<input type="number" step="any" inputmode="decimal" id="tf_rate_${i}_${j}" value="${l.rate??''}"></label>
         <label>Unit<select id="tf_unit_${i}_${j}">${Object.entries(FERT_UNITS).map(([k, n]) => `<option value="${k}" ${l.unit===k?'selected':''}>${n}</option>`).join('')}</select></label></div>
+        <label>Presyo kada sako (50 kg), para sa budget (₱)<input type="number" step="any" inputmode="decimal" id="tf_price_${i}_${j}" value="${l.bagPrice ?? ''}"></label>
         <button class="btn sm ghost" onclick="tplRead();tplEdit.focus='${t.id}';tplEdit.tasks[${i}].fert.splice(${j},1);tplRender()">🗑 Tangtanga</button></div>`).join('')}
       <button class="btn sm" onclick="tplRead();tplEdit.focus='${t.id}';(tplEdit.tasks[${i}].fert=tplEdit.tasks[${i}].fert||[]).push({unit:'kg/ha'});tplRender()">+ Dugang abono</button>` : ''}
     <div class="btnrow"><button class="btn sm red" onclick="tplRead();tplEdit.tasks.splice(${i},1);tplRender()">🗑 Tangtanga kini nga trabaho</button></div>
@@ -1464,6 +1507,143 @@ function saveLabor(x, n, doneRec){
 }
 
 
+
+/* =========================================================
+   💵 BUDGET — pila ka trabahante ug pila ang gasto (plano)
+   Man-days kada hectare (md) × area = trabahante.
+   Ang default nga md BANABANA RA — usba sa Crop Schedule.
+   ========================================================= */
+function defaultMd(t){
+  const L = String(t.label || '').toLowerCase();
+  switch (t.cat) {
+    case 'land_prep': return 2;                                     // kon naay makina (rental sa "ubang gasto")
+    case 'seeds': return 3;
+    case 'planting': return /ilisi|tamni ang wala|replant/.test(L) ? 3 : /transplant/.test(L) ? 20 : 10;
+    case 'fertilizer': return /compost|organic/.test(L) ? 6 : 4;
+    case 'weeding': return /thinning/.test(L) ? 8 : 15;
+    case 'materials': return 15;
+    case 'harvest_cost': return 15;
+    default: return 0;
+  }
+}
+const taskMd = t => t.md != null && t.md !== '' ? +t.md : defaultMd(t);
+/* Aktwal nga man-days/ha gikan sa niaging DONE records (kon naa) */
+function actualMd(cropKey, taskId){
+  const vals = [];
+  db.activities.forEach(a => {
+    if (!a.laborFor || !a.qty) return;
+    const m = a.laborFor.match(/^labor:(.+?):t:(.+)$/); if (!m || m[2] !== String(taskId)) return;
+    const p = getP(m[1]); if (!p || p.crop !== cropKey) return;
+    const ha = plantingHa(p); if (ha) vals.push(a.qty / ha);
+  });
+  return vals.length ? vals.reduce((x, y) => x + y, 0) / vals.length : null;
+}
+function budgetItems(days){
+  const t = today(), end = addDays(t, days), ctF = myCaretaker(), wage = +farmSet().wage || 0, out = [];
+  for (const p of db.plantings) {
+    if (p.status === 'done' || !p.datePlanted) continue;
+    if (ctF && p.caretakerId !== ctF) continue;
+    if (!cropMatch(p)) continue;
+    const ha = plantingHa(p);
+    for (const s of schedule(p)) {
+      if (s.done || (s.rec && s.rec.outcome === 'done')) continue;
+      if (s.due > end) continue;
+      if (s.due < t && diffDays(s.due, t) > 21) continue;
+      if (s.off < 0 && diffDays(p.datePlanted, t) >= 0) continue;
+      const tpl = getTpl(p.crop).tasks.find(x => x.id === s.id) || {};
+      const who = whoOf(Object.assign({}, s, {kind: s.cat === 'fertilizer' ? 'fert' : s.cat === 'pest_monitoring' ? 'pest' : 'task'}));
+      const md = who === 'paid' ? taskMd(Object.assign({}, tpl, s)) : 0;
+      const manDays = md && ha ? md * ha : null;
+      const workers = manDays ? Math.max(1, Math.ceil(manDays - 1e-9)) : null;
+      const mats = [];
+      (s.fert || []).forEach(l => {
+        const n = fertNeed(p, l);
+        mats.push({name:l.name || 'Abono', qty:n.kg, unit:'kg', cost: n.kg != null && +l.bagPrice ? n.kg / 50 * +l.bagPrice : null, needPrice: n.kg != null && !+l.bagPrice});
+      });
+      const otherCost = +tpl.other && ha ? +tpl.other * ha : null;
+      out.push({p, ha, date: s.due < t ? t : s.due, late: s.due < t, label:s.label, cat:s.cat, who, md, manDays, workers,
+        labor: workers && wage ? workers * wage : null, mats, otherCost, otherNote:tpl.otherNote || '', noArea: who === 'paid' && md && !ha, tplId:s.id,
+        actual: who === 'paid' ? actualMd(p.crop, s.id) : null});
+    }
+  }
+  // Spray orders (sinaligan ang mo-spray; produkto ang gasto)
+  for (const o of db.orders) {
+    const p = getP(o.plantingId);
+    if (!p || o.cancelled || o.date > end || (ctF && p.caretakerId !== ctF) || !cropMatch(p)) continue;
+    const rec = recByKey(taskKey(p.id, 'spray', o.id)); if (rec && rec.outcome === 'done') continue;
+    out.push({p, ha:plantingHa(p), date: o.date < t ? t : o.date, late: o.date < t, label:'Pag-spray: ' + o.product, cat:'pesticide', who:'ct', md:0, workers:null,
+      mats:[{name:o.product, qty: o.dose && o.tanks ? o.dose * o.tanks : null, unit:o.doseUnit || '', cost: +o.cost || null, needPrice: !+o.cost}], otherCost:null});
+  }
+  // Binhi para sa mga plano nga tanom (wala pa na-record ang binhi)
+  for (const p of db.plantings) {
+    if (p.status !== 'planned' || !p.datePlanted || !p.calc || (ctF && p.caretakerId !== ctF) || !cropMatch(p)) continue;
+    const buyBy = addDays(p.datePlanted, (SPACING[p.crop] || {}).tp ? -30 : -7);
+    if (buyBy > end || db.activities.some(a => a.plantingId === p.id && a.category === 'seeds')) continue;
+    const r = calcPlan(Object.assign({}, p.calc, {area:p.area, areaUnit:p.areaUnit}));
+    if (!r.packs) continue;
+    out.push({p, ha:plantingHa(p), date: buyBy < t ? t : buyBy, late:false, label:'Palit og binhi', cat:'seeds', who:'ct', md:0, workers:null,
+      mats:[{name:'Binhi' + (p.variety ? ' ' + p.variety : ''), qty:r.packs, unit:p.calc.packName || 'pack', cost:r.cost || null, needPrice:!r.cost}], otherCost:null});
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date));
+}
+function viewBudget(){
+  const days = state.bDays || 14, all = budgetItems(days), wage = +farmSet().wage || 0;
+  const items = all.filter(x => (x.who === 'paid' && x.md) || x.mats.length || x.otherCost);
+  const freeCt = all.length - items.length;
+  const tot = {manDays:0, labor:0, mats:0, other:0};
+  const byDay = {}, matAgg = {};
+  items.forEach(x => {
+    tot.manDays += x.workers || 0; tot.labor += x.labor || 0; tot.other += x.otherCost || 0;
+    x.mats.forEach(m => { tot.mats += m.cost || 0; const k = m.name + '|' + m.unit; matAgg[k] = matAgg[k] || {name:m.name, unit:m.unit, qty:0, cost:0, needPrice:false}; matAgg[k].qty += m.qty || 0; matAgg[k].cost += m.cost || 0; matAgg[k].needPrice = matAgg[k].needPrice || m.needPrice; });
+    (byDay[x.date] = byDay[x.date] || []).push(x);
+  });
+  const total = tot.labor + tot.mats + tot.other;
+  const peak = Object.entries(byDay).map(([d, xs]) => [d, xs.reduce((s, x) => s + (x.workers || 0), 0)]).sort((a, b) => b[1] - a[1])[0];
+  const warns = [];
+  if (!wage) warns.push(`Wala pa ang <b>sweldo kada adlaw</b> — <a href="#" onclick="event.preventDefault();ctForm()">ibutang</a> aron ma-compute ang bayad sa trabahante.`);
+  if (items.some(x => x.noArea)) warns.push('Naay tanom nga <b>walay area</b> — dili ma-compute ang trabahante. I-edit ang tanom.');
+  if (Object.values(matAgg).some(m => m.needPrice)) warns.push('Naay materyales nga <b>walay presyo</b> (abono: Crop Schedule → presyo kada sako; spray: Spray Order → gasto).');
+  const chipsD = `<div class="tabs" style="margin:0 0 10px">${[[7,'7 ka adlaw'],[14,'14 ka adlaw'],[30,'30 ka adlaw'],[120,'Hangtod harvest']].map(([d, l]) => `<button class="${days === d ? 'on' : ''}" onclick="state.bDays=${d};render()">${l}</button>`).join('')}</div>`;
+  const row = x => {
+    const c = crop(x.p), ct = ctById(x.p.caretakerId);
+    const mats = x.mats.map(m => `🧪 ${esc(m.name)}: <b>${m.qty != null ? fmtN(m.qty, m.qty < 10 ? 2 : 1) + ' ' + esc(m.unit) : '—'}</b>${m.cost ? ' · ' + money(m.cost) : m.needPrice ? ' · <span class="neg">walay presyo</span>' : ''}`).join('<br>');
+    return `<div class="bd-row ${x.late ? 'late' : ''}">
+      <div class="grow"><b>${CATS[x.cat]?.icon || '📌'} ${esc(x.label)}</b>${x.late ? ' <span class="chip" style="background:var(--red2);color:var(--red)">late</span>' : ''}
+        <div class="small muted">${c.emoji} ${esc(pName(x.p))}${ct ? ' · 👤 ' + esc(ct.name) : ''}${x.ha ? ' · ' + fmtN(x.ha, 2) + ' ha' : ''}</div>
+        ${x.who === 'paid' && x.md ? `<div class="small">👷 <b>${x.workers ? x.workers + ' ka tawo' : '—'}</b> × 1 adlaw <span class="muted">(${fmtN(x.md, 1)} man-day/ha${x.actual ? ` · aktwal kaniadto ${fmtN(x.actual, 1)}/ha` : ''})</span></div>` : x.who === 'ct' && x.cat !== 'seeds' ? '<div class="small muted">👤 Trabaho sa sinaligan — walay dugang bayad</div>' : ''}
+        ${mats ? `<div class="small">${mats}</div>` : ''}
+        ${x.otherCost ? `<div class="small">⚙️ ${esc(x.otherNote || 'Ubang gasto')}: ${money(x.otherCost)}</div>` : ''}</div>
+      <div class="bd-amt">${money((x.labor || 0) + x.mats.reduce((s, m) => s + (m.cost || 0), 0) + (x.otherCost || 0))}</div></div>`;
+  };
+  const matsList = Object.values(matAgg).filter(m => m.qty || m.cost);
+  return `${chipsD}
+    <div class="stats">
+      ${stat('👷 Trabahante (tawo-adlaw)', fmtN(tot.manDays))}
+      ${stat('Bayad sa trabahante', money(tot.labor))}
+      ${stat('Materyales', money(tot.mats))}
+      ${tot.other ? stat('Makina / uban', money(tot.other)) : ''}
+      ${stat('💵 Total nga budget', money(total), 'pos')}
+    </div>
+    ${freeCt ? `<p class="small muted">+ ${freeCt} ka trabaho sa sinaligan (patubig/pest check) nga walay dugang gasto — makita sa KARON/SUNOD.</p>` : ''}
+    ${peak && peak[1] ? `<p class="small">📌 Pinakadaghan nga tawo: <b>${peak[1]} ka trabahante</b> sa ${dayName(peak[0])} (${fmtD(peak[0])}).</p>` : ''}
+    ${warns.map(w => `<div class="alert warn"><div>${w}</div></div>`).join('')}
+    ${matsList.length ? `<h3>🧪 Materyales nga andamon</h3><div class="card">${matsList.map(m => `<div class="rowi" style="cursor:default"><span class="ic">🧪</span><div class="grow"><b>${esc(m.name)}</b><div class="small muted">${fmtN(m.qty, m.qty < 10 ? 2 : 1)} ${esc(m.unit)}${m.unit === 'kg' && m.qty >= 25 ? ` (≈ ${fmtN(m.qty / 50, 1)} ka sako)` : ''}</div></div><b>${m.cost ? money(m.cost) : '<span class="small neg">walay presyo</span>'}</b></div>`).join('')}</div>` : ''}
+    <h3>📅 Matag adlaw</h3>
+    ${Object.keys(byDay).length ? Object.keys(byDay).sort().map(d => {
+      const xs = byDay[d], w = xs.reduce((s, x) => s + (x.workers || 0), 0), amt = xs.reduce((s, x) => s + (x.labor || 0) + x.mats.reduce((q, m) => q + (m.cost || 0), 0) + (x.otherCost || 0), 0);
+      return `<div class="wk-day">${dayName(d)} · ${fmtD(d)} — 👷 ${w} ka tawo · ${money(amt)}</div><div class="card" style="padding:6px 12px">${xs.map(row).join('')}</div>`;
+    }).join('') : '<div class="wk-empty">Walay trabaho nga kinahanglan og budget niini nga panahon.</div>'}
+    <p class="small muted">Ang trabahante = man-day kada hectare × area (banabana). Usba sa ⚙️ Settings → Crop Schedule → matag trabaho. Kon naa nay DONE nga records, makita ang "aktwal kaniadto" para mas sakto ang sunod nga plano.</p>
+    <div class="btnrow"><button class="btn sm ghost" onclick="shareBudget()">📤 I-share ang budget</button><button class="btn sm ghost" onclick="window.print()">🖨️ Print</button></div>`;
+}
+function shareBudget(){
+  const days = state.bDays || 14, items = budgetItems(days), ct = ctById(myCaretaker());
+  const lines = items.map(x => `• ${fmtD(x.date)} — ${pName(x.p)}: ${x.label}${x.workers ? ` (${x.workers} ka tawo)` : ''}${x.mats.length ? ' · ' + x.mats.map(m => `${m.name} ${m.qty != null ? fmtN(m.qty, 1) + ' ' + m.unit : ''}`).join(', ') : ''}`);
+  const sumL = items.reduce((s, x) => s + (x.labor || 0), 0), sumM = items.reduce((s, x) => s + x.mats.reduce((q, m) => q + (m.cost || 0), 0) + (x.otherCost || 0), 0);
+  const text = `BUDGET ${days} KA ADLAW${ct ? ' — ' + ct.name : ''}\n${lines.join('\n') || '• Wala'}\n\nTrabahante: ${money(sumL)}\nMateryales/uban: ${money(sumM)}\nTOTAL: ${money(sumL + sumM)}`;
+  if (navigator.share) navigator.share({title:'Budget sa Uma', text}).catch(() => {});
+  else if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => toast('Na-copy'), () => {});
+}
 
 /* ---------- 🎯 Target sa produksyon ----------
    Default nga banabana sa ani kada tanom (mabaligya). Usba base sa inyong
