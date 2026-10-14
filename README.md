@@ -52,7 +52,15 @@ Pananglitan: Benta ₱100,000 − Agente ₱10,000 − Gasto ₱20,000 − Gener
 **Harvest:** sa matag benta, naka-check ang "Gibaligya pinaagi sa agente". I-uncheck kon diretso nga baligya (walay komisyon).
 **Pagbayad sa sinaligan:** 💰 Partehanay → "💵 Markahi nga nabayran na". Kon mausab ang records human sa pagbayad, ipakita sa app ang kulang o sobra.
 
-## ☁ Sync
+## 🎯 Target sa Produksyon
+Sa **Edit Tanom → 🎯 Target sa Produksyon**:
+- **Tanom nga mabuhi**: gikan sa calculator (binhi × germination).
+- **Ani kada tanom** × **% nga mabaligya** = **target nga ani**. Default nga banabana: mais 1 ka dalumpit, kalabasa 4 kg, broccoli 0.3 kg, repolyo 1 kg, sibuyas dahon 0.1 kg, kamatis 2 kg kada tanom. Usba base sa inyong experience.
+- **Gidahom nga presyo** (kamo ang mobutang) × target = **target nga benta**, minus agente.
+- Sa page sa tanom: progress bar (na-harvest vs target), **gidahom nga NET**, gidahom nga parte sa sinaligan, **break-even nga ani** ug **break-even nga presyo**.
+
+Pananglitan: 10 ka pack × 1,000 ka binhi × 85% = 8,500 ka tanom × 1 × 85% = **7,225 ka dalumpit**. Sa ₱15 kada buok = ₱108,375 − agente ₱10,837.50 = ₱97,537.50.
+
 - I-check ang **Auto-sync** sa TANANG cellphone ug computer (Settings → GitHub Sync).
 - Kon naay bag-o, mo-sync dayon human sa 1.5 segundos. Mokuha usab og bag-o gikan sa laing device **kada 30 segundos**, ug kada ablihan o balikan ang app.
 - Kon walay nausab, gamay ra kaayo nga check (walay upload, walay commit), busa paspas.

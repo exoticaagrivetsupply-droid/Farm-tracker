@@ -1436,6 +1436,72 @@ function saveLabor(x, n, doneRec){
 }
 
 
+
+/* ---------- 🎯 Target sa produksyon ----------
+   Default nga banabana sa ani kada tanom (mabaligya). Usba base sa inyong
+   kaugalingong experience / variety. Walay default nga presyo. */
+const YIELD = {
+  sweet_corn:{unit:'pcs', per:1, mkt:85},   kalabasa:{unit:'kg', per:4, mkt:85},
+  broccoli:{unit:'kg', per:0.3, mkt:80},     cabbage:{unit:'kg', per:1, mkt:85},
+  green_onion:{unit:'kg', per:0.1, mkt:85},  tomato:{unit:'kg', per:2, mkt:80},
+  eggplant:{unit:'kg', per:2, mkt:80},       ampalaya:{unit:'kg', per:1.5, mkt:80},
+  sitaw:{unit:'kg', per:0.5, mkt:85},        pechay:{unit:'kg', per:0.15, mkt:85},
+  pepper:{unit:'kg', per:0.5, mkt:80},       other:{unit:'kg', per:null, mkt:85}
+};
+const UNIT_WORD = {kg:'kg', pcs:'ka buok', head:'ka ulo', bundle:'ka bugkos', sack:'ka sako'};
+const sameUnit = (a, b) => { const n = u => String(u || 'kg').toLowerCase().replace(/^(pc|piece|pieces|buok)$/, 'pcs').replace(/s$/, ''); return n(a) === n(b); };
+function targetCalc(plants, t){
+  if (!plants || !t || !(+t.per)) return null;
+  const qty = plants * +t.per * (t.mkt ?? 100) / 100;
+  const gross = +t.price ? qty * +t.price : null;
+  const agent = gross != null ? gross * agentPct() / 100 : null;
+  return {plants, qty, gross, agent, after: gross != null ? gross - agent : null};
+}
+function targetUpdate(){
+  const el = $('#targetOut'); if (!el) return;
+  const res = calcPlan(readCalcForm());
+  const plants = v('f_areaUnit') === 'plants' && num('f_area') ? num('f_area') : (res.plants || res.hills);
+  const t = {per:num('f_tper'), unit:v('f_tunit'), mkt:num('f_tmkt'), price:num('f_tprice')};
+  const tc = targetCalc(plants, t), u = UNIT_WORD[t.unit] || t.unit;
+  if (!plants) { el.innerHTML = '<p class="small muted" style="margin:0">Ibutang una ang binhi / distance sa calculator sa ibabaw aron makwenta pila ka tanom.</p>'; return; }
+  if (!tc) { el.innerHTML = `<p class="small muted" style="margin:0">${fmtN(plants)} ka tanom. Ibutang ang ani kada tanom.</p>`; return; }
+  el.innerHTML = `<table class="tbl">
+    <tr><td>Tanom nga mabuhi</td><td>${fmtN(plants)}</td></tr>
+    <tr><td>🎯 Target nga ani (${fmtN(t.mkt ?? 100)}% mabaligya)</td><td style="color:var(--green);font-size:17px">${fmtN(tc.qty, tc.qty < 100 ? 1 : 0)} ${esc(u)}</td></tr>
+    ${tc.gross != null ? `<tr><td>Target nga benta (gross)</td><td>${money(tc.gross)}</td></tr>
+    <tr><td>− Agente ${fmtN(agentPct(), 1)}%</td><td class="neg">${money(tc.agent)}</td></tr>
+    <tr><td>Masulod sa uma (una ibawas ang gasto)</td><td><b>${money(tc.after)}</b></td></tr>` : '<tr><td colspan="2" class="small muted">Ibutang ang gidahom nga presyo aron makita ang target nga benta.</td></tr>'}
+  </table>`;
+}
+function targetCard(p){
+  const t = p.target, plants = plantCount(p), tc = targetCalc(plants, t);
+  if (!tc) return p.status === 'done' ? '' : `<div class="card small" style="cursor:pointer" onclick="plantingForm('${p.id}')">🎯 <b>Walay target sa produksyon.</b> <u>Ibutang</u> (Edit → Target sa Produksyon).</div>`;
+  const s = stats(p.id), u = UNIT_WORD[t.unit] || t.unit;
+  const actQty = sum(s.hv.filter(h => sameUnit(h.unit, t.unit)), h => h.qty);
+  const otherUnits = s.hv.some(h => !sameUnit(h.unit, t.unit));
+  const pct = Math.min(100, actQty / tc.qty * 100);
+  const costNow = s.cost + s.gen;
+  const projNet = tc.after != null ? tc.after - costNow : null;
+  const ctPart = s.ct && projNet > 0 ? projNet * s.ctPct / 100 : 0;
+  const beQty = +t.price ? Math.ceil(costNow / (+t.price * (1 - agentPct() / 100)) - 1e-9) : null;
+  const bePrice = tc.qty ? costNow / tc.qty / (1 - agentPct() / 100) : null;
+  return `<details class="card" style="padding:12px 14px" open><summary>🎯 Target: ${fmtN(tc.qty, tc.qty < 100 ? 1 : 0)} ${esc(u)} · Na-harvest ${fmtN(pct, 0)}%</summary>
+    <div class="bar" style="height:10px"><i style="width:${pct}%"></i></div>
+    <table class="tbl">
+      <tr><td>Na-harvest na</td><td>${fmtN(actQty, 1)} / ${fmtN(tc.qty, tc.qty < 100 ? 1 : 0)} ${esc(u)}</td></tr>
+      ${otherUnits ? `<tr><td colspan="2" class="small muted">Naay harvest nga lahi ang unit (dili ${esc(t.unit)}) — wala gi-apil sa porsyento.</td></tr>` : ''}
+      ${tc.gross != null ? `<tr><td>Target nga benta</td><td>${money(tc.gross)}</td></tr>
+      <tr><td>Aktwal nga benta karon</td><td>${money(s.income)} (${fmtN(tc.gross ? s.income / tc.gross * 100 : 0, 0)}%)</td></tr>
+      <tr><td>Gasto karon</td><td>${money(costNow)}</td></tr>
+      <tr><td><b>Gidahom nga NET</b> (kon maabot ang target)</td><td class="${projNet >= 0 ? 'pos' : 'neg'}"><b>${projNet < 0 ? '−' : ''}${money(Math.abs(projNet))}</b></td></tr>
+      ${s.ct ? `<tr><td>👤 Gidahom nga parte ni ${esc(s.ct.name)}</td><td>${money(ctPart)}</td></tr>` : ''}
+      <tr><td>Break-even nga ani (para mabawi ang gasto)</td><td>${fmtN(beQty, 0)} ${esc(u)}</td></tr>` : `<tr><td colspan="2" class="small muted">Ibutang ang gidahom nga presyo (Edit → Target) aron makita ang gidahom nga NET.</td></tr>`}
+      ${bePrice ? `<tr><td>Break-even nga presyo (kon maabot ang target)</td><td>${money(bePrice)} / ${esc(t.unit)}</td></tr>` : ''}
+    </table>
+    <p class="small muted" style="margin:6px 0 0">${fmtN(plants)} ka tanom × ${fmtN(t.per, 2)} ${esc(u)} × ${fmtN(t.mkt ?? 100)}% mabaligya. Banabana ra — usba sa Edit kon lahi ang inyong experience.</p>
+  </details>`;
+}
+
 /* ---------- Planting calculator ---------- */
 // Typical spacing (cm), seeds per hill, and approx seeds per gram. Always check the seed pack.
 const SPACING = {
@@ -1534,6 +1600,7 @@ function calcUpdate(src){
   const res = calcPlan(o);
   if (seedMode && res.sqm) { document.getElementById('f_area').value = round2(res.sqm); document.getElementById('f_areaUnit').value = 'sqm'; }
   document.getElementById('calcOut').innerHTML = calcHtml(o, res);
+  targetUpdate();
 }
 
 /* ---------- Views ---------- */
@@ -1574,6 +1641,8 @@ function pCard(p){
       <span class="chip st-${p.status}">${STATUS[p.status]||p.status}</span></div>
     ${p.status !== 'done' ? `<div class="bar"><i style="width:${pct}%"></i></div>
     <div class="small muted">${dap >= 0 ? `Day ${dap} (DAP)` : `${-dap} ka adlaw antes magtanom`} · Harvest ~${fmtD(addDays(p.datePlanted, Number(p.days)||0))}</div>` : ''}
+    ${(() => { const tc = targetCalc(plantCount(p), p.target); if (!tc) return ''; const aq = sum(s.hv.filter(h => sameUnit(h.unit, p.target.unit)), h => h.qty);
+      return `<div class="small" style="margin-top:6px">🎯 Target ${fmtN(tc.qty, tc.qty < 100 ? 1 : 0)} ${esc(UNIT_WORD[p.target.unit] || p.target.unit)}${tc.gross != null ? ` (${money(tc.gross)})` : ''} · na-harvest <b>${fmtN(Math.min(100, aq / tc.qty * 100), 0)}%</b></div>`; })()}
     <div class="pc-nums">${s.ct ? `<span>👤 ${esc(s.ct.name)}</span>` : ''}<span>Gasto <b>${money(s.allCost)}</b></span><span>Benta <b>${money(s.income)}</b></span>
       ${harvested || p.status === 'done'
         ? `<span class="${s.net>=0?'pos':'neg'}">${s.net>=0?'Ganansya':'Lugi'} <b>${money(Math.abs(s.net))}</b></span>`
@@ -1645,6 +1714,7 @@ function viewPlanting(){
       ${stat('Benta', money(s.income))}
       ${stat(s.net >= 0 ? 'Ganansya' : 'Lugi', money(Math.abs(s.net)), s.hv.length || p.status==='done' ? (s.net >= 0 ? 'pos' : 'neg') : '')}
     </div>
+    ${targetCard(p)}
     ${seedCard(p)}
     <div class="tabs">${tabs.map(([k,l]) => `<button class="${tab===k?'on':''}" onclick="state.tab='${k}';render()">${l}</button>`).join('')}</div>
     ${body}`;
@@ -1844,6 +1914,8 @@ function plantingForm(id){
   const dflt = SPACING[p.crop] || SPACING.other;
   const pc = Object.assign({mode:'seed', method:dflt.tp ? 'transplant' : 'direct', germ:85, rowCm:dflt.row, plCm:dflt.pl, sph:1, allow:dflt.tp ? 20 : 10, spg:dflt.spg, packUnit:'g', tray:dflt.tp ? 104 : null}, p.calc || {});
   if (p.calc && !p.calc.mode) pc.mode = 'area';
+  const pt = Object.assign({}, YIELD[p.crop] || YIELD.other, p.target || {});
+  const YIELD_HINT = 'mais 1 ka dalumpit, kalabasa 4 kg, broccoli 0.3 kg, repolyo 1 kg, sibuyas dahon 0.1 kg, kamatis 2 kg kada tanom';
   const sel = (val, opts) => opts.map(([k,l]) => `<option value="${k}" ${val===k?'selected':''}>${l}</option>`).join('');
   modal(id ? 'Edit Tanom' : 'Bag-o nga Tanom', `
     <label>Crop<select id="f_crop" onchange="cropChanged()">${sel(p.crop, Object.entries(CROPS).map(([k,c]) => [k, c.emoji + ' ' + c.name]))}</select></label>
@@ -1880,6 +1952,14 @@ function plantingForm(id){
       <datalist id="packnames"><option>pack</option><option>can</option><option>kilo</option><option>sachet</option></datalist>
       <div class="card" id="calcOut" style="margin:12px 0 0"></div>
     </details>
+    <details style="background:#fff7e0;border-color:#ecd9a0;margin:12px 0 0" open><summary>🎯 Target sa Produksyon</summary>
+      <div class="row2"><label>Ani kada tanom (mabaligya)<input type="number" step="any" inputmode="decimal" id="f_tper" value="${pt.per ?? ''}" oninput="targetUpdate()"></label>
+      <label>Unit<select id="f_tunit" onchange="targetUpdate()">${sel(pt.unit || 'kg', Object.entries({kg:'kilo (kg)', pcs:'buok (pcs)', head:'ulo (head)', bundle:'bugkos', sack:'sako'}))}</select></label></div>
+      <div class="row2"><label>% nga mabaligya (minus reject/patay)<input type="number" step="any" inputmode="decimal" id="f_tmkt" value="${pt.mkt ?? ''}" oninput="targetUpdate()"></label>
+      <label>Gidahom nga presyo kada unit (₱)<input type="number" step="any" inputmode="decimal" id="f_tprice" value="${pt.price ?? ''}" oninput="targetUpdate()"></label></div>
+      <p class="hint">Default nga banabana: ${esc(YIELD_HINT)}. Usba base sa inyong variety ug experience.</p>
+      <div class="card" id="targetOut" style="margin:10px 0 0"></div>
+    </details>
     <label>Plot / Lugar<input id="f_location" value="${esc(p.location||'')}" placeholder="hal. Plot A, sa may sapa"></label>
     <div class="row2"><label>Petsa sang pagtanom / transplant<input type="date" id="f_date" value="${p.datePlanted||''}"></label>
     <label>Days to harvest<input type="number" inputmode="numeric" id="f_days" value="${p.days??''}"></label></div>
@@ -1891,6 +1971,7 @@ function plantingForm(id){
     const r = Object.assign(p, {crop:v('f_crop'), customName:v('f_customName').trim(), variety:v('f_variety').trim(), batch:v('f_batch').trim(),
       area:num('f_area'), areaUnit:v('f_areaUnit'), location:v('f_location').trim(), datePlanted:v('f_date'),
       days:num('f_days') ?? CROPS[v('f_crop')].days, status:v('f_status'), notes:v('f_notes'), caretakerId:v('f_ctId') || null});
+    r.target = {per:num('f_tper'), unit:v('f_tunit'), mkt:num('f_tmkt'), price:num('f_tprice')};
     const co = readCalcForm(); delete co.area; delete co.areaUnit;
     r.calc = co;
     upsert('plantings', r); toast('Na-save ang tanom');
@@ -1911,6 +1992,8 @@ function cropChanged(init){
     const d = SPACING[k] || SPACING.other;
     Object.entries({f_rowcm:d.row, f_plcm:d.pl, f_sph:d.tp ? 1 : d.sph, f_allow:d.tp ? 20 : 10, f_spg:d.spg ?? '', f_tray:d.tp ? 104 : '', f_method:d.tp ? 'transplant' : 'direct'})
       .forEach(([id, val]) => document.getElementById(id).value = val);
+    const y = YIELD[k] || YIELD.other;
+    document.getElementById('f_tper').value = y.per ?? ''; document.getElementById('f_tunit').value = y.unit; document.getElementById('f_tmkt').value = y.mkt;
   }
   calcUpdate();
 }
